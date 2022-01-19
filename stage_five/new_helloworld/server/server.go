@@ -1,9 +1,11 @@
 package main
 
 import (
-	"development/stage_five/new_helloworld/handler"
 	"net"
 	"net/rpc"
+
+	"development/stage_five/new_helloworld/handler"
+	"development/stage_five/new_helloworld/server_proxy"
 )
 
 func main() {
@@ -11,7 +13,8 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	err = rpc.RegisterName(handler.HelloServiceName, &handler.HelloService{})
+
+	err = server_proxy.RegisterHelloService(&handler.HelloService{})
 	if err != nil {
 		panic(err)
 	}

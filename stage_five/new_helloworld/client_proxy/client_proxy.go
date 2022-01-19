@@ -11,6 +11,7 @@ type HelloServiceStub struct {
 }
 
 // NewHelloServiceClient 这里要把 rpc.Dial 封装进来，让用户只传入 network, addr即可
+// 实例 HelloServiceStub 对象
 func NewHelloServiceClient(network, addr string) *HelloServiceStub {
 	client, err := rpc.Dial(network, addr)
 	if err != nil {
@@ -19,6 +20,7 @@ func NewHelloServiceClient(network, addr string) *HelloServiceStub {
 	return &HelloServiceStub{Client: client}
 }
 
+// Hello 调用方法
 func (c *HelloServiceStub) Hello(args string, reply *string) error {
 	return c.Call(handler.HelloServiceName+".Hello", args, reply)
 }
