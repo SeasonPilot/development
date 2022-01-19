@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+option go_package = "./;proto/";
+
+service HelloWordServer{
+  rpc Hello (HelloReq)  returns (HelloResp);
+
+}
+
+message HelloReq {
+  string name = 1;  //1是编号不是值
+}
+
+message HelloResp {
+  string msg = 1;
+}
