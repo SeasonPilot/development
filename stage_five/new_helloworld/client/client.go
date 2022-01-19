@@ -1,6 +1,7 @@
 package main
 
 import (
+	"development/stage_five/new_helloworld/handler"
 	"fmt"
 	"net/rpc"
 )
@@ -8,13 +9,13 @@ import (
 func main() {
 	client, err := rpc.Dial("tcp", "localhost:1234")
 	if err != nil {
-		return
+		panic("连接失败")
 	}
 
 	var reply string
-	err = client.Call("HelloService.Hello", "season", &reply)
+	err = client.Call(handler.HelloServiceName+".Hello", "season", &reply)
 	if err != nil {
-		return
+		panic("调用失败")
 	}
 
 	fmt.Println(reply)
