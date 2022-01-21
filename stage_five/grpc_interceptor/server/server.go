@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net"
+	"time"
 
 	"development/stage_five/grpc_test/proto"
 
@@ -24,8 +26,17 @@ func main() {
 		panic(err)
 	}
 
+	// 拦截器
+	inter := func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
+		start := time.Now()
+		resp, err = handler(ctx, req)
+		fmt.Printf("server: %s\n", time.Since(start))
+		return resp, err
+	}
+	opt := grpc.UnaryInterceptor(inter)
+
 	// 注册服务
-	g := grpc.NewServer()
+	g := grpc.NewServer(opt)
 	proto.RegisterGreeterServer(g, &Server{})
 	// 启动服务
 	err = g.Serve(listener)
