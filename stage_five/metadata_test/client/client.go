@@ -8,6 +8,7 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
 )
 
 func main() {
@@ -21,11 +22,17 @@ func main() {
 	// new client 对象
 	c := proto.NewGreeterClient(conn)
 
+	md := metadata.New(map[string]string{
+		"name": "season",
+	})
+	//md1:=metadata.Pairs("hh", "111")
+	ctx := metadata.NewOutgoingContext(context.Background(), md)
+
 	// 调用服务
 	req := proto.HelloRequest{
 		Name: "kk",
 	}
-	reply, err := c.SayHello(context.Background(), &req)
+	reply, err := c.SayHello(ctx, &req)
 	if err != nil {
 		fmt.Println(err)
 	}

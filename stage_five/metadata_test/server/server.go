@@ -2,16 +2,24 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net"
 
 	"development/stage_five/grpc_test/proto"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 )
 
 type Server struct{}
 
 func (s *Server) SayHello(ctx context.Context, req *proto.HelloRequest) (*proto.HelloReply, error) {
+	// metadata.FromIncomingContext 是写在业务逻辑中，不是 main函数中
+	md, ok := metadata.FromIncomingContext(ctx)
+	if ok {
+		fmt.Println(md["name"])
+	}
+
 	return &proto.HelloReply{
 		Massage: "Hello," + req.Name,
 	}, nil
