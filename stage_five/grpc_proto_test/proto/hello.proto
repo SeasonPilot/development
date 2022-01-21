@@ -1,0 +1,35 @@
+syntax = "proto3";
+option go_package = "./;proto";
+
+import "google/protobuf/timestamp.proto";
+
+service Greeter {
+  rpc SayHello(HelloRequest) returns (HelloReply);
+}
+
+// message 嵌套
+message HelloReply {
+  string message = 1;
+
+  message Result {
+    string name = 1;
+    string url = 2;
+  }
+
+  repeated Result data = 2;
+}
+
+// enum
+enum Gender {
+  // 枚举字段必须从 0 开始；First enum value must be 0 in proto3
+  MALE = 0;
+  FEMALE = 1;
+}
+
+message HelloRequest {
+  string name = 1;
+  Gender g = 2;
+  map<string, string> mp = 3;
+  // 时间类型
+  google.protobuf.Timestamp addTime = 4;
+}
