@@ -7,14 +7,14 @@ import (
 	"development/stage_five/grpc_error_test/proto"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type Server struct{}
 
 func (s *Server) SayHello(ctx context.Context, req *proto.HelloRequest) (*proto.HelloReply, error) {
-	return &proto.HelloReply{
-		Massage: "Hello," + req.Name,
-	}, nil
+	return nil, status.Errorf(codes.NotFound, "记录未找到:%s", req.Name)
 }
 
 func main() {

@@ -7,6 +7,7 @@ import (
 	"development/stage_five/grpc_error_test/proto"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/status"
 )
 
 func main() {
@@ -25,9 +26,14 @@ func main() {
 	req := proto.HelloRequest{
 		Name: "kk",
 	}
-	reply, err := c.SayHello(context.Background(), &req)
+	_, err = c.SayHello(context.Background(), &req)
 	if err != nil {
-		fmt.Println(err)
+		sts, ok := status.FromError(err)
+		if !ok {
+			// Error was not a status error
+			panic("解析error失败")
+		}
+		fmt.Println(sts.Message())
+		fmt.Println(sts.Code())
 	}
-	fmt.Println(reply)
 }
