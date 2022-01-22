@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"development/stage_five/grpc_overtime_test/proto"
 
@@ -26,7 +27,9 @@ func main() {
 	req := proto.HelloRequest{
 		Name: "kk",
 	}
-	_, err = c.SayHello(context.Background(), &req)
+	ctx, cancel := context.WithTimeout(context.TODO(), time.Second*3)
+	defer cancel()
+	_, err = c.SayHello(ctx, &req)
 	if err != nil {
 		sts, ok := status.FromError(err)
 		if !ok {

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"net"
+	"time"
 
 	"development/stage_five/grpc_overtime_test/proto"
 
@@ -12,6 +13,7 @@ import (
 type Server struct{}
 
 func (s *Server) SayHello(ctx context.Context, req *proto.HelloRequest) (*proto.HelloReply, error) {
+	time.Sleep(time.Second * 5)
 	return &proto.HelloReply{
 		Massage: "Hello," + req.Name,
 	}, nil
