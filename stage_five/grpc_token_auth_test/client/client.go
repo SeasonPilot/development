@@ -8,13 +8,19 @@ import (
 	"development/stage_five/grpc_test/proto"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 )
 
 func main() {
 	// 拦截器
 	inter := func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 		start := time.Now()
-		err := invoker(ctx, method, req, reply, cc, opts...)
+
+		// metadata
+		md := metadata.Pairs("appid", "101010", "appkey", "i am key")
+		c := metadata.NewOutgoingContext(ctx, md)
+
+		err := invoker(c, method, req, reply, cc, opts...)
 		fmt.Printf("client: %s\n", time.Since(start))
 		return err
 	}
