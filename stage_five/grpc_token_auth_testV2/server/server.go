@@ -6,7 +6,7 @@ import (
 	"net"
 	"time"
 
-	"development/stage_five/grpc_test/proto"
+	"development/stage_five/grpc_token_auth_testV2/proto"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"

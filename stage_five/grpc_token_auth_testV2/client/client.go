@@ -3,31 +3,29 @@ package main
 import (
 	"context"
 	"fmt"
-	"time"
 
-	"development/stage_five/grpc_test/proto"
+	"development/stage_five/grpc_token_auth_testV2/proto"
 
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/metadata"
 )
 
+type customCredential struct{}
+
+func (c *customCredential) GetRequestMetadata(ctx context.Context, uri ...string) (map[string]string, error) {
+	fmt.Println(ctx, uri)
+	return map[string]string{
+		"appid":  "101010",
+		"appkey": "i am key",
+	}, nil
+}
+
+func (c *customCredential) RequireTransportSecurity() bool {
+	return false
+}
+
 func main() {
-	// 拦截器
-	inter := func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
-		start := time.Now()
-
-		// metadata
-		md := metadata.Pairs("appid", "101010", "appkey", "i am key")
-		c := metadata.NewOutgoingContext(ctx, md)
-
-		err := invoker(c, method, req, reply, cc, opts...)
-		fmt.Printf("client: %s\n", time.Since(start))
-		return err
-	}
-	opt := grpc.WithUnaryInterceptor(inter)
-
 	// 拨号
-	conn, err := grpc.Dial("localhost:1234", grpc.WithInsecure(), opt)
+	conn, err := grpc.Dial("localhost:1234", grpc.WithInsecure(), grpc.WithPerRPCCredentials(&customCredential{}))
 	//grpc.Dial(":9950", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		panic(err)
