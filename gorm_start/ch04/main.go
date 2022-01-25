@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"os"
 	"time"
@@ -41,4 +42,22 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	// 批量插入
+	// 单一的 SQL 语句
+	users := []User{{Name: "bobby1"}, {Name: "bobby2"}, {Name: "bobby3"}}
+	db.Create(&users)
+
+	//为什么不一次性提交所有的 还要分批次，sql语句有长度限制
+	db.CreateInBatches(users, 2)
+
+	for _, user := range users {
+		fmt.Println(user.ID) // 1,2,3
+	}
+	// 根据 Map 创建
+	db.Model(&User{}).Create([]map[string]interface{}{
+		{"Name": "bobby1"},
+		{"Name": "bobby2"},
+		{"Name": "bobby3"},
+	})
 }
