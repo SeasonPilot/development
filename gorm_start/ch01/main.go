@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"log"
 	"os"
 	"time"
@@ -12,7 +13,7 @@ import (
 
 type Product struct {
 	gorm.Model
-	Code  string
+	Code  sql.NullString
 	Price uint
 }
 
@@ -41,7 +42,7 @@ func main() {
 	}
 
 	// 新增
-	db.Create(&Product{Code: "D42", Price: 200})
+	db.Create(&Product{Code: sql.NullString{String: "D42", Valid: true}, Price: 200})
 
 	// Read
 	var product Product
@@ -52,7 +53,7 @@ func main() {
 	// UPDATE `products` SET `code`='D45',`updated_at`='2022-01-25 15:16:43.499' WHERE `id` = 3 AND `products`.`deleted_at` IS NULL
 	db.Model(&Product{Model: gorm.Model{ID: 3}}).Update("Code", "D45")
 	// Update - 更新多个字段
-	db.Model(&product).Updates(Product{Code: "D55", Price: 100}) // 仅更新非零值字段
+	db.Model(&product).Updates(Product{Code: sql.NullString{String: "", Valid: true}, Price: 100}) // 通过 NullString 解决不能更新零值的问题
 
 	// Delete - 删除 product， 并没有执行delete语句，逻辑删除
 	db.Delete(&Product{}, "ID = ?", 1)
