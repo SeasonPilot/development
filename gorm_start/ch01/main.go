@@ -39,4 +39,21 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	// 新增
+	db.Create(&Product{Code: "D42", Price: 200})
+
+	// Read
+	var product Product
+	db.First(&product, 2)                 // 根据整形主键查找
+	db.First(&product, "Code = ?", "D42") // 查找 code 字段值为 D42 的记录
+
+	// update 前面要有 Model, Model 中的 ID 会作为 WHERE 的条件
+	// UPDATE `products` SET `code`='D45',`updated_at`='2022-01-25 15:16:43.499' WHERE `id` = 3 AND `products`.`deleted_at` IS NULL
+	db.Model(&Product{Model: gorm.Model{ID: 3}}).Update("Code", "D45")
+	// Update - 更新多个字段
+	db.Model(&product).Updates(Product{Code: "D55", Price: 100}) // 仅更新非零值字段
+
+	// Delete - 删除 product， 并没有执行delete语句，逻辑删除
+	db.Delete(&Product{}, "ID = ?", 1)
 }
