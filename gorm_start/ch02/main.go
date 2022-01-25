@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"log"
 	"os"
 	"time"
@@ -11,10 +10,9 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-type Product struct {
-	gorm.Model
-	Code  sql.NullString
-	Price uint
+type User struct {
+	ID   uint   `gorm:"primarykey"`
+	Name string `gorm:"column:user_name;type:varchar(50);index:idx_user_name;default:'bobby'"`
 }
 
 func main() {
@@ -36,8 +34,10 @@ func main() {
 		panic(err)
 	}
 
-	err = db.AutoMigrate(&Product{})
+	err = db.AutoMigrate(&User{})
 	if err != nil {
 		panic(err)
 	}
+
+	db.Create(&User{})
 }
