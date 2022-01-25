@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"os"
 	"time"
@@ -40,5 +41,16 @@ func main() {
 	})
 	if err != nil {
 		panic(err)
+	}
+
+	var user User
+	db.First(&user, []int{1, 2, 3})
+	fmt.Println(user.ID)
+
+	// 查询所有
+	var users []User
+	db.Find(&users)
+	for _, u := range users {
+		fmt.Println(u.ID)
 	}
 }
