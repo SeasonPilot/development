@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"time"
@@ -10,16 +11,15 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-// User 有多张 CreditCard，UserID 是外键
-type User struct {
+// User3 拥有并属于多种 language，`user_languages` 是连接表
+type User3 struct {
 	gorm.Model
-	CreditCards []CreditCard
+	Languages []Language `gorm:"many2many:user_languages;"`
 }
 
-type CreditCard struct {
+type Language struct {
 	gorm.Model
-	Number string
-	UserID uint
+	Name string
 }
 
 func main() {
@@ -41,8 +41,40 @@ func main() {
 		panic(err)
 	}
 
-	err = db.AutoMigrate(&User{})
+	err = db.AutoMigrate(&User3{})
 	if err != nil {
 		panic(err)
+	}
+
+	db.Create(&User3{
+		Languages: []Language{
+			{
+				Name: "Python",
+			},
+			{
+				Name: "Rust",
+			},
+		},
+	})
+
+	var user = User3{
+		Model: gorm.Model{
+			ID: 2,
+		},
+	}
+	// 执行 3 条 SQL 语句
+	db.Preload("Languages").Find(&user)
+	for _, language := range user.Languages {
+		fmt.Println(language.Name)
+	}
+
+	// 执行 1 条 SQL 语句
+	var languages []Language
+	err = db.Model(&user).Association("Languages").Find(&languages)
+	if err != nil {
+		panic(err)
+	}
+	for _, language := range languages { // 结果写到 languages
+		fmt.Println(language.Name)
 	}
 }
