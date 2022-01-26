@@ -41,4 +41,17 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	// 先读取
+	var user User
+	db.First(&user)
+
+	// 如果 user 主键不为零值时则 update ，否则 insert
+	user.Name = "season"
+	// 更新的两种方法
+	// 1. 通过 Save 更新
+	db.Save(&user) //save方法是一个集create和update于一体的操作
+
+	// 2. 通过 update 更新
+	db.Model(&User{}).Where("name = ?", "season").Update("name", "haha")
 }
