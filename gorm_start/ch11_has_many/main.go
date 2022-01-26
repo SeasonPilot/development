@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"time"
@@ -10,17 +11,16 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-// User `User` 属于 `Company`，`CompanyID` 是外键
+// User 有多张 CreditCard，UserID 是外键
 type User struct {
 	gorm.Model
-	Name      string
-	CompanyID int
-	Company   Company
+	CreditCards []CreditCard
 }
 
-type Company struct {
-	ID   int
-	Name string
+type CreditCard struct {
+	gorm.Model
+	Number string
+	UserID uint
 }
 
 func main() {
@@ -40,5 +40,39 @@ func main() {
 	})
 	if err != nil {
 		panic(err)
+	}
+
+	err = db.AutoMigrate(&User{})
+	if err != nil {
+		panic(err)
+	}
+
+	err = db.AutoMigrate(&CreditCard{})
+	if err != nil {
+		panic(err)
+	}
+
+	card := User{}
+	db.Create(&card)
+
+	db.Create(&CreditCard{
+		Number: "12",
+		UserID: card.ID,
+	})
+
+	db.Create(&CreditCard{
+		Number: "34",
+		UserID: card.ID,
+	})
+
+	user1 := User{
+		Model: gorm.Model{
+			ID: 1,
+		},
+	}
+	// Preload 里面是字段名称
+	db.Preload("CreditCards").First(&user1)
+	for _, card := range user1.CreditCards {
+		fmt.Println(card.Number)
 	}
 }
