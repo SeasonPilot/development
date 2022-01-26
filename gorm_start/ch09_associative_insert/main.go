@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"log"
 	"os"
 	"time"
@@ -11,16 +10,17 @@ import (
 	"gorm.io/gorm/logger"
 )
 
+// User `User` 属于 `Company`，`CompanyID` 是外键
 type User struct {
-	ID           uint
-	Name         string
-	Email        *string
-	Age          uint8
-	Birthday     *time.Time
-	MemberNumber sql.NullString
-	ActivatedAt  sql.NullTime
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	gorm.Model
+	Name      string
+	CompanyID int
+	Company   Company
+}
+
+type Company struct {
+	ID   int
+	Name string
 }
 
 func main() {
@@ -41,4 +41,29 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	err = db.AutoMigrate(&User{})
+	if err != nil {
+		panic(err)
+	}
+
+	db.Create(&User{
+		Name: "season",
+		Company: Company{
+			Name: "bytes", // 第二次会创建新的公司
+		},
+	})
+
+	db.Create(&User{
+		Name: "season",
+		Company: Company{
+			ID: 1, // 将 user 插入已有的公司内
+		},
+	})
+
+	// 官方文档没有看见这个写法，但试了是可以的
+	db.Create(&User{
+		Name:      "bobby",
+		CompanyID: 1,
+	})
 }
