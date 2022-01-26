@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"os"
 	"time"
@@ -40,5 +41,18 @@ func main() {
 	})
 	if err != nil {
 		panic(err)
+	}
+
+	//通过where查询
+	var user User
+	var users []User
+	//1. string
+	db.Where("name = ? ", "bobby2").Find(&users)
+	//2. struct
+	db.Where(&User{ID: 1}).First(&user)
+	//3. map
+	db.Where(map[string]interface{}{"name": "bobby3"}).Find(&users)
+	for _, user := range users {
+		fmt.Println(user.ID)
 	}
 }
