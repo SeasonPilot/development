@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"time"
@@ -41,4 +42,17 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	var user User
+	db.Preload("Company").First(&user) // 执行两条 SQL 语句
+	fmt.Println(user.ID)
+	fmt.Println(user.Company)
+	fmt.Println(user.CompanyID)
+	fmt.Println(user.Company.Name)
+
+	db.Joins("Company").First(&user) // 执行一条 SQL 语句
+	fmt.Println(user.ID)
+	fmt.Println(user.Company)
+	fmt.Println(user.CompanyID)
+	fmt.Println(user.Company.Name)
 }
