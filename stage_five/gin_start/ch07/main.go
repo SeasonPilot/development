@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"reflect"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
@@ -29,11 +31,28 @@ type SignUpForm struct {
 	RePassword string `json:"re_password" binding:"required,eqfield=Password"`
 }
 
+func removeTopStruct(fields map[string]string) map[string]string {
+	resp := make(map[string]string, len(fields))
+	for k, v := range fields {
+		resp[k[strings.Index(k, ".")+1:]] = v
+	}
+	return resp
+}
+
 func initTrans(local string) error {
 	v, ok := binding.Validator.Engine().(*validator.Validate) // 返回为默认 Validator 实例提供支持的底层验证器引擎。
 	if !ok {
 		return fmt.Errorf("validate err %v", v)
 	}
+
+	// 从tag中取值
+	v.RegisterTagNameFunc(func(field reflect.StructField) string {
+		name := strings.SplitN(field.Tag.Get("json"), ",", 2)[0]
+		if name == "-" {
+			return ""
+		}
+		return name
+	})
 
 	enT := en.New() //中文翻译器
 	zhT := zh.New() //英文翻译器
@@ -75,7 +94,7 @@ func main() {
 				c.JSON(http.StatusOK, gin.H{"err": errs.Error()})
 				return
 			}
-			c.JSON(http.StatusBadRequest, gin.H{"err": errs.Translate(trans)})
+			c.JSON(http.StatusBadRequest, gin.H{"err": removeTopStruct(errs.Translate(trans))})
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{"msg": "登陆成功"})
