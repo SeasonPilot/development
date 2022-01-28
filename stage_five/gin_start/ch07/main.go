@@ -5,7 +5,16 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
+	"github.com/go-playground/locales/en"
+	"github.com/go-playground/locales/zh"
+	ut "github.com/go-playground/universal-translator"
+	"github.com/go-playground/validator/v10"
+	en_translations "github.com/go-playground/validator/v10/translations/en"
+	zh_translations "github.com/go-playground/validator/v10/translations/zh"
 )
+
+var trans ut.Translator
 
 type LoginForm struct {
 	User     string `form:"user" json:"user" binding:"required,min=3,max=10"`
@@ -20,15 +29,53 @@ type SignUpForm struct {
 	RePassword string `json:"re_password" binding:"required,eqfield=Password"`
 }
 
+func initTrans(local string) error {
+	v, ok := binding.Validator.Engine().(*validator.Validate) // 返回为默认 Validator 实例提供支持的底层验证器引擎。
+	if !ok {
+		return fmt.Errorf("validate err %v", v)
+	}
+
+	enT := en.New() //中文翻译器
+	zhT := zh.New() //英文翻译器
+	//第一个参数是备用的语言环境，后面的参数是应该支持的语言环境
+	universalTranslator := ut.New(enT, zhT, enT) // 通用翻译器
+
+	var found bool
+	// 根据 locale(区域) 返回指定的翻译器
+	if trans, found = universalTranslator.GetTranslator(local); found {
+		// 将 Translator 注册到 validator
+		switch local {
+		case "zh":
+			_ = zh_translations.RegisterDefaultTranslations(v, trans) // 在 validator 中为所有内置标签注册一组默认翻译(Translations)
+		case "en":
+			_ = en_translations.RegisterDefaultTranslations(v, trans)
+		default:
+			_ = en_translations.RegisterDefaultTranslations(v, trans)
+		}
+		return nil
+	}
+	return fmt.Errorf("GetTranslator not found")
+}
+
 func main() {
+	if err := initTrans("zh"); err != nil {
+		fmt.Println(err)
+		return
+	}
+
 	r := gin.Default()
 
 	r.POST("/loginJSON", func(c *gin.Context) {
 		var loginForm LoginForm
 		err := c.ShouldBind(&loginForm)
 		if err != nil {
-			fmt.Println(err)
-			c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
+			// fixme:接口断言返回的是两个值
+			errs, ok := err.(validator.ValidationErrors)
+			if !ok {
+				c.JSON(http.StatusOK, gin.H{"err": errs.Error()})
+				return
+			}
+			c.JSON(http.StatusBadRequest, gin.H{"err": errs.Translate(trans)})
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{"msg": "登陆成功"})
