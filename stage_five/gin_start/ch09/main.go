@@ -13,6 +13,9 @@ func main() {
 	r.LoadHTMLGlob("templates/**/*")
 	//r.LoadHTMLFiles("templates/goods.tmpl")
 
+	// 第一个参数是 url 。第二个参数是静态文件目录,即当前目录下的 static 文件夹
+	r.Static("/static", "./static")
+
 	r.GET("/index", func(c *gin.Context) {
 		//如果没有在模板中使用define定义 那么我们就可以使用默认的文件名来找
 		c.HTML(http.StatusOK, "default/index", gin.H{
