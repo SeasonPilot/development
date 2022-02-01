@@ -20,6 +20,6 @@ type User struct {
 	Password string     `gorm:"type:varchar(100);not null"`
 	NickName string     `gorm:"type:varchar(20)"`
 	Birthday *time.Time `gorm:"type:datetime"`
-	Gender   string     `gorm:"type:varchar(6);default:male comment 'male表示男性,female表示女性'"`
-	Role     int        `gorm:"default:1 comment '1 表示普通用户,2 表示管理员'"`
+	Gender   string     `gorm:"type:varchar(6);default:male;comment:'male表示男性,female表示女性'"`
+	Role     int        `gorm:"default:1;comment:'1 表示普通用户,2 表示管理员'"`
 }
