@@ -7,6 +7,8 @@ import (
 	"development/mxshop_srvs/user_srv/model"
 	"development/mxshop_srvs/user_srv/proto"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
 )
 
@@ -61,4 +63,28 @@ func (s *UserServer) GetUserList(ctx context.Context, in *proto.PageInfo) (resp 
 	}
 
 	return resp, nil
+}
+
+func (s *UserServer) GetUserByMobile(ctx context.Context, req *proto.MobileRequest) (*proto.UserInfoResponse, error) {
+	user := model.User{}
+	result := global.DB.Where(model.User{Mobile: req.Mobile}).First(&user)
+	if result.RowsAffected == 0 {
+		return nil, status.Error(codes.NotFound, "用户不存在")
+	}
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return modelToResp(user), nil
+}
+
+func (s *UserServer) GetUserById(ctx context.Context, req *proto.IdRequest) (*proto.UserInfoResponse, error) {
+	user := model.User{}
+	result := global.DB.First(&user, req.Id)
+	if result.RowsAffected == 0 {
+		return nil, status.Error(codes.NotFound, "用户不存在")
+	}
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return modelToResp(user), nil
 }
