@@ -4,12 +4,15 @@ import (
 	"context"
 	"crypto/sha512"
 	"fmt"
+	"strings"
+	"time"
 
 	"development/mxshop_srvs/user_srv/global"
 	"development/mxshop_srvs/user_srv/model"
 	"development/mxshop_srvs/user_srv/proto"
 
 	"github.com/anaskhan96/go-password-encoder"
+	"github.com/golang/protobuf/ptypes/empty"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
@@ -112,4 +115,33 @@ func (s *UserServer) CreateUser(ctx context.Context, req *proto.CreateUserInfo) 
 		return nil, status.Error(codes.Internal, result.Error.Error())
 	}
 	return modelToResp(user), nil
+}
+
+func (s *UserServer) UpdateUser(ctx context.Context, req *proto.UpdateUserInfo) (*empty.Empty, error) {
+	// 查询用户是否存在
+	var user model.User
+	result := global.DB.First(&user, req.ID)
+	if result.RowsAffected == 0 {
+		return nil, status.Error(codes.NotFound, "用户不存在")
+	}
+
+	// 更新字段
+	user.NickName = req.NickName
+	user.Gender = req.Gender
+	birthDay := time.Unix(int64(req.BirthDay), 0)
+	user.Birthday = &birthDay
+
+	result = global.DB.Save(&user)
+	if result.Error != nil {
+		return nil, status.Errorf(codes.Internal, "更新失败:%s", result.Error.Error())
+	}
+	return &empty.Empty{}, nil
+}
+
+func (s *UserServer) CheckPassWord(ctx context.Context, req *proto.PasswordCheckInfo) (*proto.CheckResponse, error) {
+	options := &password.Options{SaltLen: 16, Iterations: 100, KeyLen: 32, HashFunction: sha512.New}
+	passwordInfo := strings.Split(req.EncryptedPassword, "$")
+	return &proto.CheckResponse{
+		Success: password.Verify(req.Password, passwordInfo[2], passwordInfo[3], options),
+	}, nil
 }
