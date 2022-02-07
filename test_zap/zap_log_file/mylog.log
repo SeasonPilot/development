@@ -1,0 +1,2 @@
+{"level":"info","ts":1644246735.71061,"caller":"zap_log_file/main.go:28","msg":"fail to fetch url baidu.com,3"}
+{"level":"info","ts":1644246962.992167,"caller":"zap_log_file/main.go:30","msg":"fail to fetch url baidu.com,3"}
