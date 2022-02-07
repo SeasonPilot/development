@@ -61,6 +61,8 @@ func (s *UserServer) GetUserList(ctx context.Context, in *proto.PageInfo) (resp 
 	if result.Error != nil {
 		return nil, result.Error
 	}
+	// fixme：指针类型要先初始化再使用
+	resp = &proto.UserListResponse{}
 	resp.Total = int32(result.RowsAffected)
 
 	global.DB.Scopes(Paginate(int(in.Pn), int(in.PSize))).Find(&users)
