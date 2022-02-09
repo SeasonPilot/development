@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"development/mxshop_api/user-web/global"
 	"development/mxshop_api/user-web/response"
 	"development/mxshop_srvs/user_srv/proto"
 
@@ -49,10 +50,8 @@ func RpcErrToHttpErr(err error, c *gin.Context) {
 }
 
 func GetUserList(c *gin.Context) {
-	ip := "127.0.0.1"
-	port := 50051
 	// non-blocking dial
-	conn, err := grpc.Dial(fmt.Sprintf("%s:%d", ip, port), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.Dial(fmt.Sprintf("%s:%d", global.SrvConfig.UserInfo.Host, global.SrvConfig.UserInfo.Port), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		zap.S().Panicf("连接用户服务失败 %s", err.Error())
 		return
