@@ -1,0 +1,76 @@
+syntax = "proto3";
+option go_package = "./;proto";
+import "google/protobuf/empty.proto";
+
+// CRUD没有删除；密码校验
+service User {
+  rpc GetUserList(PageInfo) returns (UserListResponse);  // 用户列表
+  rpc GetUserByMobile(MobileRequest)
+      returns (UserInfoResponse);  //通过 mobile 查询用户
+  rpc GetUserById(IdRequest) returns (UserInfoResponse);  //通过 id 查询用户
+  rpc CreateUser(CreateUserInfo) returns (UserInfoResponse);  // 添加用户
+  rpc UpdateUser(UpdateUserInfo) returns (google.protobuf.Empty);  // 更新用户
+  rpc CheckPassWord(PasswordCheckInfo) returns (CheckResponse);  //检查密码
+}
+
+message PageInfo {
+  uint32 Pn = 1;
+  uint32 PSize = 2;
+  //  uint32 total = 3;
+}
+
+message UserListResponse {
+  int32 total = 1;
+  repeated UserInfoResponse data = 2;
+}
+
+message UserInfoResponse {
+  uint32 Id = 1;
+  string Password = 2;
+  string Mobile = 3;
+  string NickName = 4;
+  uint32 BirthDay = 5;
+  string Gender = 6;
+  uint32 Role = 7;
+  //  string Name = 2;
+}
+
+message MobileRequest {
+  string mobile = 1;
+}
+
+message IdRequest {
+  uint32 Id = 1;
+}
+
+message CreateUserInfo {
+  string NickName = 1;
+  string Password = 2;
+  string Mobile = 3;
+  //  创建用户不需要手动填写 ID
+  //  uint32 ID = 1;
+  //  string Name = 2;
+  //  uint32 BirthDay = 6;
+  //  string Gender = 7;
+  //  uint32 Role = 8;
+}
+
+message UpdateUserInfo {
+  uint32 ID = 1;
+  string NickName = 2;
+  string Gender = 3;
+  uint32 BirthDay = 4;
+  //  string Name = 2;
+  //  string Password = 4;
+  //  string Mobile = 5;
+  //  uint32 Role = 8;
+}
+
+message PasswordCheckInfo {
+  string Password = 1;
+  string EncryptedPassword = 2;
+}
+
+message CheckResponse {
+  bool success = 1;
+}
