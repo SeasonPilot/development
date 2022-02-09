@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"development/mxshop_api/user-web/global"
@@ -57,10 +58,15 @@ func GetUserList(c *gin.Context) {
 		return
 	}
 
+	pn := c.DefaultQuery("pn", "1")
+	pnInt, _ := strconv.Atoi(pn)
+	pSize := c.DefaultQuery("psize", "10")
+	pSizeInt, _ := strconv.Atoi(pSize)
+
 	userClient := proto.NewUserClient(conn)
 	rsp, err := userClient.GetUserList(c, &proto.PageInfo{
-		Pn:    0,
-		PSize: 10,
+		Pn:    uint32(pnInt),
+		PSize: uint32(pSizeInt),
 	})
 	if err != nil {
 		zap.S().Errorf("GetUserList 失败 %s", err.Error())
