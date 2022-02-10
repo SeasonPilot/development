@@ -129,7 +129,7 @@ func PassWordLogin(c *gin.Context) {
 	err := c.ShouldBind(&loginForm)
 	if err != nil {
 		HandleValidatorError(c, err)
-		// fixme:
+		// fixme: 要记的 return
 		return
 	}
 	fmt.Println(c.PostForm("name"))

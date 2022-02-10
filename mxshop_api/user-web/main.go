@@ -5,7 +5,11 @@ import (
 
 	"development/mxshop_api/user-web/global"
 	"development/mxshop_api/user-web/initialization"
+	myvalidator "development/mxshop_api/user-web/validator"
 
+	"github.com/gin-gonic/gin/binding"
+	ut "github.com/go-playground/universal-translator"
+	"github.com/go-playground/validator/v10"
 	"go.uber.org/zap"
 )
 
@@ -14,6 +18,17 @@ func main() {
 	initialization.InitLogger()
 	initialization.InitConfig()
 	initialization.InitTrans("zh")
+
+	// 注册验证器、翻译器
+	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
+		_ = v.RegisterValidation("mobile", myvalidator.MobileValidator)
+		_ = v.RegisterTranslation("mobile", global.Translator, func(ut ut.Translator) error {
+			return ut.Add("mobile", "{0} 非法的手机号码!", true) // see universal-translator for details
+		}, func(ut ut.Translator, fe validator.FieldError) string {
+			t, _ := ut.T("mobile", fe.Field())
+			return t
+		})
+	}
 
 	zap.S().Infof("启动服务器，端口：%d", global.SrvConfig.Port)
 
