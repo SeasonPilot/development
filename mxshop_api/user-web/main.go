@@ -13,6 +13,7 @@ func main() {
 	//1. 初始化logger
 	initialization.InitLogger()
 	initialization.InitConfig()
+	initialization.InitTrans("zh")
 
 	zap.S().Infof("启动服务器，端口：%d", global.SrvConfig.Port)
 

@@ -11,5 +11,6 @@ func InitUserRouter(r *gin.RouterGroup) {
 	group := r.Group("user")
 	{
 		group.GET("list", api.GetUserList)
+		group.POST("login", api.PassWordLogin)
 	}
 }

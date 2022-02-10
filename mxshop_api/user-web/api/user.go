@@ -4,19 +4,38 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
+	"development/mxshop_api/user-web/forms"
 	"development/mxshop_api/user-web/global"
 	"development/mxshop_api/user-web/response"
 	"development/mxshop_srvs/user_srv/proto"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 )
+
+/*
+removeTopStruct 移除 PassWordLoginForm.
+{
+    "msg": {
+        "PassWordLoginForm.password": "password长度必须至少为3个字符"
+    }
+}
+*/
+func removeTopStruct(fields map[string]string) map[string]string {
+	resp := make(map[string]string, len(fields))
+	for k, v := range fields {
+		resp[k[strings.Index(k, ".")+1:]] = v
+	}
+	return resp
+}
 
 // RpcErrToHttpErr 将 grpc 的 code 转换成 http 的状态码
 func RpcErrToHttpErr(err error, c *gin.Context) {
@@ -48,6 +67,18 @@ func RpcErrToHttpErr(err error, c *gin.Context) {
 			}
 		}
 	}
+}
+
+func HandleValidatorError(c *gin.Context, err error) {
+	if errs, ok := err.(validator.ValidationErrors); ok {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"msg": removeTopStruct(errs.Translate(global.Translator)),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"msg": err.Error(),
+	})
 }
 
 func GetUserList(c *gin.Context) {
@@ -91,4 +122,20 @@ func GetUserList(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, users)
+}
+
+func PassWordLogin(c *gin.Context) {
+	loginForm := forms.PassWordLoginForm{}
+	err := c.ShouldBind(&loginForm)
+	if err != nil {
+		HandleValidatorError(c, err)
+		// fixme:
+		return
+	}
+	fmt.Println(c.PostForm("name"))
+	fmt.Println(c.PostForm("password"))
+
+	c.JSON(http.StatusOK, gin.H{
+		"msg": "登陆成功",
+	})
 }
