@@ -125,15 +125,89 @@ func GetUserList(c *gin.Context) {
 }
 
 func PassWordLogin(c *gin.Context) {
-	loginForm := forms.PassWordLoginForm{}
-	err := c.ShouldBind(&loginForm)
+	passwordLoginForm := forms.PassWordLoginForm{}
+	err := c.ShouldBind(&passwordLoginForm)
 	if err != nil {
 		HandleValidatorError(c, err)
 		// fixme: 要记的 return
 		return
 	}
-	fmt.Println(c.PostForm("name"))
-	fmt.Println(c.PostForm("password"))
+
+	conn, err := grpc.Dial(fmt.Sprintf("%s:%d", global.SrvConfig.UserInfo.Host, global.SrvConfig.UserInfo.Port), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		zap.S().Panicf("连接用户服务失败 %s", err.Error())
+		return
+	}
+	userClient := proto.NewUserClient(conn)
+
+	// 查看用户是否存在
+	rsp, err := userClient.GetUserByMobile(c, &proto.MobileRequest{Mobile: passwordLoginForm.Name})
+	if err != nil {
+		// fixme: user_srv grpc 返回的错误不只一种,可以看下 grpc 层服务返回哪些错误; 所以这里要拿到错误原因进行判断。
+		//  还有连接不上 grpc 服务的错误 Unavailable。
+		RpcStatus, ok := status.FromError(err)
+		if ok {
+			switch RpcStatus.Code() {
+			case codes.NotFound:
+				c.JSON(http.StatusBadRequest, gin.H{
+					"msg": "用户不存在",
+				})
+			case codes.Unavailable:
+				c.JSON(http.StatusServiceUnavailable, gin.H{
+					"msg": "rpc 服务不可用",
+				})
+			default:
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"msg": "登陆失败",
+				})
+			}
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"msg": "登陆失败",
+		})
+		zap.S().Errorf("GetUserByMobile err:%s", err.Error())
+		return
+	}
+	if rsp == nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"msg": "用户不存在",
+		})
+		return
+	}
+
+	// 验证密码
+	checkPassWordRsp, err := userClient.CheckPassWord(c, &proto.PasswordCheckInfo{
+		Password:          passwordLoginForm.Password,
+		EncryptedPassword: rsp.Password,
+	})
+	if err != nil {
+		RpcStatus, ok := status.FromError(err)
+		if ok {
+			switch RpcStatus.Code() {
+			case codes.Unavailable:
+				c.JSON(http.StatusServiceUnavailable, gin.H{
+					"msg": "rpc 服务不可用",
+				})
+			default:
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"msg": "登陆失败",
+				})
+			}
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"msg": "登陆失败",
+		})
+		return
+	}
+
+	if !checkPassWordRsp.Success {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"msg": "密码错误",
+		})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"msg": "登陆成功",
