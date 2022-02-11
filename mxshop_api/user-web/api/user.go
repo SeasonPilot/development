@@ -9,11 +9,14 @@ import (
 
 	"development/mxshop_api/user-web/forms"
 	"development/mxshop_api/user-web/global"
+	"development/mxshop_api/user-web/middlewares"
+	"development/mxshop_api/user-web/models"
 	"development/mxshop_api/user-web/response"
 	"development/mxshop_srvs/user_srv/proto"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	"github.com/golang-jwt/jwt/v4"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -209,7 +212,31 @@ func PassWordLogin(c *gin.Context) {
 		return
 	}
 
+	j := middlewares.NewJWT()
+	token, err := j.CreateToken(
+		// 注意，不要在 JWT 的 payload 或 header 中放置敏感信息，除非它们是加密的
+		models.CustomClaims{
+			ID:          uint(rsp.Id),
+			NickName:    rsp.NickName,
+			AuthorityID: uint(rsp.Role),
+			RegisteredClaims: jwt.RegisteredClaims{
+				Issuer:    "season",
+				ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(time.Hour * 24 * 30)}, //30天过期
+				NotBefore: &jwt.NumericDate{Time: time.Now()},
+			},
+		})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"msg": "生成token失败",
+		})
+		return
+	}
+
+	c.Header("x-token", token)
 	c.JSON(http.StatusOK, gin.H{
-		"msg": "登陆成功",
+		"id":         rsp.Id,
+		"nick_name":  rsp.NickName,
+		"token":      token,
+		"expired_at": time.Now().Add(time.Hour * 24 * 30).Unix(),
 	})
 }
