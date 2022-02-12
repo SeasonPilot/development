@@ -236,7 +236,8 @@ func PassWordLogin(c *gin.Context) {
 		return
 	}
 
-	c.Header("x-token", token)
+	// 是客户端请求时需要带上 x-token ,服务端通过 body 返回，不是 response header
+	//c.Header("x-token", token)
 	c.JSON(http.StatusOK, gin.H{
 		"id":         rsp.Id,
 		"nick_name":  rsp.NickName,
