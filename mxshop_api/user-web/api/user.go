@@ -91,6 +91,9 @@ func GetUserList(c *gin.Context) {
 		zap.S().Panicf("连接用户服务失败 %s", err.Error())
 		return
 	}
+	claims, _ := c.Get("claims")
+	currentUser, _ := claims.(*models.CustomClaims)
+	zap.S().Infof("当前登陆的用户是: %d", currentUser.ID)
 
 	pn := c.DefaultQuery("pn", "1")
 	pnInt, _ := strconv.Atoi(pn)
@@ -212,6 +215,7 @@ func PassWordLogin(c *gin.Context) {
 		return
 	}
 
+	// 登陆成功后返回 JWT Token
 	j := middlewares.NewJWT()
 	token, err := j.CreateToken(
 		// 注意，不要在 JWT 的 payload 或 header 中放置敏感信息，除非它们是加密的
