@@ -6,3 +6,12 @@ user-srv:
 
 jwt:
   key: GH0h8xNQN6@zeUIqv7O5sUwh2XWaX#%O
+
+sms:
+  key: LTAI5tENnBtu2g3ZqQX5461b
+  secret: Ab5oHpgUfTSa7drZOQxNuADkLd82JJ
+
+redis:
+  host: 172.19.30.30
+  port: 6379
+  expire: 15
