@@ -11,11 +11,12 @@ import (
 	"development/mxshop_api/user-web/global"
 	"development/mxshop_api/user-web/middlewares"
 	"development/mxshop_api/user-web/models"
+	"development/mxshop_api/user-web/proto"
 	"development/mxshop_api/user-web/response"
-	"development/mxshop_srvs/user_srv/proto"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	"github.com/go-redis/redis"
 	"github.com/golang-jwt/jwt/v4"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -248,6 +249,81 @@ func PassWordLogin(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"id":         rsp.Id,
 		"nick_name":  rsp.NickName,
+		"token":      token,
+		"expired_at": time.Now().Add(time.Hour * 24 * 30).Unix(),
+	})
+}
+
+func Register(c *gin.Context) {
+	// 表单验证
+	var registerForm forms.RegisterForm
+	err := c.ShouldBind(&registerForm)
+	if err != nil {
+		HandleValidatorError(c, err)
+		return
+	}
+
+	// sms 验证码校验
+	rdb := redis.NewClient(&redis.Options{
+		Addr: fmt.Sprintf("%s:%d", global.SrvConfig.RedisInfo.Host, global.SrvConfig.RedisInfo.Port),
+	})
+	result, err := rdb.Get(registerForm.Mobile).Result()
+	if err == redis.Nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"msg": "短信验证码错误",
+		})
+		return
+	}
+
+	if registerForm.Code != result {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"msg": "短信验证码错误",
+		})
+		return
+	}
+
+	// 注册用户
+	conn, err := grpc.Dial(fmt.Sprintf("%s:%d", global.SrvConfig.UserInfo.Host, global.SrvConfig.UserInfo.Port), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		zap.S().Panicf("连接用户服务失败 %s", err.Error())
+		return
+	}
+
+	userClient := proto.NewUserClient(conn)
+	user, err := userClient.CreateUser(c, &proto.CreateUserInfo{
+		NickName: registerForm.Mobile,
+		Password: registerForm.Password,
+		Mobile:   registerForm.Mobile,
+	})
+	if err != nil {
+		RpcErrToHttpErr(err, c)
+		return
+	}
+
+	// 注册成功后返回 JWT Token, 实现 注册即登录; 注册后自动登录。
+	j := middlewares.NewJWT()
+	token, err := j.CreateToken(
+		// 注意，不要在 JWT 的 payload 或 header 中放置敏感信息，除非它们是加密的
+		models.CustomClaims{
+			ID:          uint(user.Id),
+			NickName:    user.NickName,
+			AuthorityID: uint(user.Role),
+			RegisteredClaims: jwt.RegisteredClaims{
+				Issuer:    "season",
+				ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(time.Hour * 24 * 30)}, //30天过期
+				NotBefore: &jwt.NumericDate{Time: time.Now()},
+			},
+		})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"msg": "生成token失败",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"id":         user.Id,
+		"nick_name":  user.NickName,
 		"token":      token,
 		"expired_at": time.Now().Add(time.Hour * 24 * 30).Unix(),
 	})
