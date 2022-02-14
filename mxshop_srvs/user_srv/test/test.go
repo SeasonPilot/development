@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"development/mxshop_srvs/user_srv/proto"
+	"mxshop-srvs/user_srv/proto"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"

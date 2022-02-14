@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"net"
 
-	"development/mxshop_srvs/user_srv/global"
-	"development/mxshop_srvs/user_srv/handler"
-	"development/mxshop_srvs/user_srv/model"
-	"development/mxshop_srvs/user_srv/proto"
+	"mxshop-srvs/user_srv/global"
+	"mxshop-srvs/user_srv/handler"
+	"mxshop-srvs/user_srv/model"
+	"mxshop-srvs/user_srv/proto"
 
 	"github.com/anaskhan96/go-password-encoder"
 	"google.golang.org/grpc"

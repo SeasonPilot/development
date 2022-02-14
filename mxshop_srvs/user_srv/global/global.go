@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"development/mxshop_srvs/user_srv/model"
+	"mxshop-srvs/user_srv/model"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"

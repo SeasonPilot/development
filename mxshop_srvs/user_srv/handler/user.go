@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"development/mxshop_srvs/user_srv/global"
-	"development/mxshop_srvs/user_srv/model"
-	"development/mxshop_srvs/user_srv/proto"
+	"mxshop-srvs/user_srv/global"
+	"mxshop-srvs/user_srv/model"
+	"mxshop-srvs/user_srv/proto"
 
 	"github.com/anaskhan96/go-password-encoder"
 	"github.com/golang/protobuf/ptypes/empty"
