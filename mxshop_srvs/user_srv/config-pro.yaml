@@ -1,0 +1,6 @@
+mysql:
+  db: mxshop_user_srv
+  host: 172.19.30.30
+  port: 3306
+  user: golang
+  password: golang@2020

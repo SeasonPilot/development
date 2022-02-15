@@ -8,14 +8,20 @@ import (
 
 	"mxshop-srvs/user_srv/global"
 	"mxshop-srvs/user_srv/handler"
+	"mxshop-srvs/user_srv/initialization"
 	"mxshop-srvs/user_srv/model"
 	"mxshop-srvs/user_srv/proto"
 
 	"github.com/anaskhan96/go-password-encoder"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
 
 func main() {
+	initialization.InitLogger()
+	initialization.InitConfig()
+	initialization.InitDB()
+
 	//密码加密
 	options := &password.Options{SaltLen: 16, Iterations: 100, KeyLen: 32, HashFunction: sha512.New}
 	salt, encodedPwd := password.Encode("admin123", options)
@@ -35,7 +41,7 @@ func main() {
 	port := flag.Int("port", 50051, "端口号")
 
 	flag.Parse()
-	fmt.Println(*ip, *port)
+	zap.S().Info(*ip, *port)
 
 	// 注册服务
 	g := grpc.NewServer()
