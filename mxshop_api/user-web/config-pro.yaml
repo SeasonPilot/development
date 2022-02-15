@@ -1,4 +1,4 @@
-name: user-web
+name: user_srv
 port: 8021
 user-srv:
   host: 127.0.0.1
@@ -15,3 +15,7 @@ redis:
   host: 172.19.30.30
   port: 6379
   expire: 15
+
+consul:
+  host: 10.94.62.100
+  port: 8500

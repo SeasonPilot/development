@@ -19,9 +19,7 @@ import (
 	"github.com/go-redis/redis"
 	"github.com/golang-jwt/jwt/v4"
 	"go.uber.org/zap"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 )
 
@@ -86,12 +84,6 @@ func HandleValidatorError(c *gin.Context, err error) {
 }
 
 func GetUserList(c *gin.Context) {
-	// non-blocking dial
-	conn, err := grpc.Dial(fmt.Sprintf("%s:%d", global.SrvConfig.UserInfo.Host, global.SrvConfig.UserInfo.Port), grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		zap.S().Panicf("连接用户服务失败 %s", err.Error())
-		return
-	}
 	claims, _ := c.Get("claims")
 	currentUser, _ := claims.(*models.CustomClaims)
 	zap.S().Infof("当前登陆的用户是: %d", currentUser.ID)
@@ -101,8 +93,7 @@ func GetUserList(c *gin.Context) {
 	pSize := c.DefaultQuery("psize", "10")
 	pSizeInt, _ := strconv.Atoi(pSize)
 
-	userClient := proto.NewUserClient(conn)
-	rsp, err := userClient.GetUserList(c, &proto.PageInfo{
+	rsp, err := global.UserClient.GetUserList(c, &proto.PageInfo{
 		Pn:    uint32(pnInt),
 		PSize: uint32(pSizeInt),
 	})
@@ -147,15 +138,8 @@ func PassWordLogin(c *gin.Context) {
 		return
 	}
 
-	conn, err := grpc.Dial(fmt.Sprintf("%s:%d", global.SrvConfig.UserInfo.Host, global.SrvConfig.UserInfo.Port), grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		zap.S().Panicf("连接用户服务失败 %s", err.Error())
-		return
-	}
-	userClient := proto.NewUserClient(conn)
-
 	// 查看用户是否存在
-	rsp, err := userClient.GetUserByMobile(c, &proto.MobileRequest{Mobile: passwordLoginForm.Name})
+	rsp, err := global.UserClient.GetUserByMobile(c, &proto.MobileRequest{Mobile: passwordLoginForm.Name})
 	if err != nil {
 		// fixme: user_srv grpc 返回的错误不只一种,可以看下 grpc 层服务返回哪些错误; 所以这里要拿到错误原因进行判断。
 		//  还有连接不上 grpc 服务的错误 Unavailable。
@@ -191,7 +175,7 @@ func PassWordLogin(c *gin.Context) {
 	}
 
 	// 验证密码
-	checkPassWordRsp, err := userClient.CheckPassWord(c, &proto.PasswordCheckInfo{
+	checkPassWordRsp, err := global.UserClient.CheckPassWord(c, &proto.PasswordCheckInfo{
 		Password:          passwordLoginForm.Password,
 		EncryptedPassword: rsp.Password,
 	})
@@ -283,14 +267,7 @@ func Register(c *gin.Context) {
 	}
 
 	// 注册用户
-	conn, err := grpc.Dial(fmt.Sprintf("%s:%d", global.SrvConfig.UserInfo.Host, global.SrvConfig.UserInfo.Port), grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		zap.S().Panicf("连接用户服务失败 %s", err.Error())
-		return
-	}
-
-	userClient := proto.NewUserClient(conn)
-	user, err := userClient.CreateUser(c, &proto.CreateUserInfo{
+	user, err := global.UserClient.CreateUser(c, &proto.CreateUserInfo{
 		NickName: registerForm.Mobile,
 		Password: registerForm.Password,
 		Mobile:   registerForm.Mobile,

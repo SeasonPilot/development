@@ -18,6 +18,7 @@ func main() {
 	initialization.InitLogger()
 	initialization.InitConfig()
 	initialization.InitTrans("zh")
+	initialization.InitSrvConn()
 
 	// 注册验证器、翻译器
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {

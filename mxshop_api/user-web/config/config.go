@@ -19,6 +19,11 @@ type RedisConfig struct {
 	Expire int    `mapstruture:"expire"`
 }
 
+type ConsulConfig struct {
+	Host string `mapstructuer:"host"`
+	Port int    `mapstructure:"port"`
+}
+
 type ServerConfig struct {
 	Name       string        `mapstructure:"name"`
 	Port       int           `structure:"port"`
@@ -26,4 +31,5 @@ type ServerConfig struct {
 	JWTInfo    JWTConfig     `mapstructure:"jwt"`
 	AliSmsInfo AliSmsConfig  `mapstructure:"sms"`
 	RedisInfo  RedisConfig   `mapstructure:"redis"`
+	ConsulInfo ConsulConfig  `mapstructure:"consul"`
 }
