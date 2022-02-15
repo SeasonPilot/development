@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"strings"
 
-	"development/mxshop_api/user-web/global"
+	"mxshop-api/user-web/global"
 
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/locales/en"

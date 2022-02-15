@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"development/mxshop_api/user-web/forms"
-	"development/mxshop_api/user-web/global"
+	"mxshop-api/user-web/forms"
+	"mxshop-api/user-web/global"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/dysmsapi"

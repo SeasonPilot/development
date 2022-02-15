@@ -1,8 +1,8 @@
 package initialization
 
 import (
-	"development/mxshop_api/user-web/middlewares"
-	"development/mxshop_api/user-web/router"
+	"mxshop-api/user-web/middlewares"
+	"mxshop-api/user-web/router"
 
 	"github.com/gin-gonic/gin"
 )

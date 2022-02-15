@@ -3,7 +3,7 @@ package initialization
 import (
 	"fmt"
 
-	"development/mxshop_api/user-web/global"
+	"mxshop-api/user-web/global"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"

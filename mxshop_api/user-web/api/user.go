@@ -7,12 +7,12 @@ import (
 	"strings"
 	"time"
 
-	"development/mxshop_api/user-web/forms"
-	"development/mxshop_api/user-web/global"
-	"development/mxshop_api/user-web/middlewares"
-	"development/mxshop_api/user-web/models"
-	"development/mxshop_api/user-web/proto"
-	"development/mxshop_api/user-web/response"
+	"mxshop-api/user-web/forms"
+	"mxshop-api/user-web/global"
+	"mxshop-api/user-web/middlewares"
+	"mxshop-api/user-web/models"
+	"mxshop-api/user-web/proto"
+	"mxshop-api/user-web/response"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"

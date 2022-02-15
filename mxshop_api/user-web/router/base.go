@@ -1,7 +1,7 @@
 package router
 
 import (
-	"development/mxshop_api/user-web/api"
+	"mxshop-api/user-web/api"
 
 	"github.com/gin-gonic/gin"
 )

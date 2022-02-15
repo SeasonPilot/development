@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"development/mxshop_api/user-web/global"
-	"development/mxshop_api/user-web/models"
+	"mxshop-api/user-web/global"
+	"mxshop-api/user-web/models"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"

@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 
-	"development/mxshop_api/user-web/global"
-	"development/mxshop_api/user-web/initialization"
-	myvalidator "development/mxshop_api/user-web/validator"
+	"mxshop-api/user-web/global"
+	"mxshop-api/user-web/initialization"
+	myvalidator "mxshop-api/user-web/validator"
 
 	"github.com/gin-gonic/gin/binding"
 	ut "github.com/go-playground/universal-translator"
