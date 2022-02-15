@@ -11,6 +11,7 @@ import (
 	"mxshop-srvs/user_srv/initialization"
 	"mxshop-srvs/user_srv/model"
 	"mxshop-srvs/user_srv/proto"
+	"mxshop-srvs/user_srv/utils"
 
 	"github.com/anaskhan96/go-password-encoder"
 	"github.com/hashicorp/consul/api"
@@ -40,8 +41,14 @@ func main() {
 		global.DB.Save(&user)
 	}
 
+	freePort, err := utils.GetFreePort()
+	if err != nil {
+		panic(err)
+		return
+	}
+
 	ip := flag.String("ip", "0.0.0.0", "ip 地址")
-	port := flag.Int("port", 50051, "端口号")
+	port := flag.Int("port", freePort, "端口号")
 
 	flag.Parse()
 	zap.S().Info(*ip, *port)
