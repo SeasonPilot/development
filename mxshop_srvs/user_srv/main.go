@@ -5,6 +5,9 @@ import (
 	"flag"
 	"fmt"
 	"net"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"mxshop-srvs/user_srv/global"
 	"mxshop-srvs/user_srv/handler"
@@ -14,6 +17,7 @@ import (
 	"mxshop-srvs/user_srv/utils"
 
 	"github.com/anaskhan96/go-password-encoder"
+	"github.com/google/uuid"
 	"github.com/hashicorp/consul/api"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -73,8 +77,9 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	srvID := uuid.New().String()
 	err = client.Agent().ServiceRegister(&api.AgentServiceRegistration{
-		ID:      global.ServiceConfig.Name,
+		ID:      srvID,
 		Name:    global.ServiceConfig.Name,
 		Tags:    []string{"primary", "v1"},
 		Port:    *port,
@@ -90,9 +95,23 @@ func main() {
 		panic(err)
 	}
 
-	// 启动服务
-	err = g.Serve(listen)
+	go func() {
+		// 启动服务
+		err = g.Serve(listen)
+		if err != nil {
+			panic(err)
+		}
+	}()
+
+	// 优雅退出; deregister 服务
+	quit := make(chan os.Signal)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	err = client.Agent().ServiceDeregister(srvID)
 	if err != nil {
-		panic(err)
+		zap.S().Errorf("注销服务失败:%s %s", global.ServiceConfig.Name, srvID)
+		return
 	}
+	zap.S().Info("注销成功")
 }
