@@ -7,7 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Routers 全局Routers; 避免每个 router(如 user、短信等) 都实例化一个
+// Routers 全局Routers; 避免每个 router(如 user、base等) 都实例化一个
 func Routers() *gin.Engine {
 	// 大写是为了和包名区分开
 	Router := gin.Default()

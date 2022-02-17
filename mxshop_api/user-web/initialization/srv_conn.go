@@ -6,7 +6,7 @@ import (
 	"mxshop-api/user-web/proto"
 
 	"github.com/hashicorp/consul/api"
-	_ "github.com/mbobakov/grpc-consul-resolver" // It's important
+	_ "github.com/mbobakov/grpc-consul-resolver" // It's important;   用户服务发现
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -14,7 +14,7 @@ import (
 
 func InitSrvConn() {
 	cfg := global.SrvConfig.ConsulInfo
-	//grpc lb
+	//grpc lb;  consul 用户服务发现
 	conn, err := grpc.Dial(
 		fmt.Sprintf("consul://%s:%d/%s?wait=14s", cfg.Host, cfg.Port, global.SrvConfig.Name),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),

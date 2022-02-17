@@ -24,7 +24,7 @@ import (
 )
 
 /*
-removeTopStruct 移除 PassWordLoginForm.
+removeTopStruct 移除 `PassWordLoginForm.`
 {
     "msg": {
         "PassWordLoginForm.password": "password长度必须至少为3个字符"
@@ -71,6 +71,7 @@ func RpcErrToHttpErr(err error, c *gin.Context) {
 	}
 }
 
+// HandleValidatorError 处理 Validator 的错误
 func HandleValidatorError(c *gin.Context, err error) {
 	if errs, ok := err.(validator.ValidationErrors); ok {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -84,10 +85,12 @@ func HandleValidatorError(c *gin.Context, err error) {
 }
 
 func GetUserList(c *gin.Context) {
+	// 从 Context 中获取当前登陆的用户
 	claims, _ := c.Get("claims")
 	currentUser, _ := claims.(*models.CustomClaims)
 	zap.S().Infof("当前登陆的用户是: %d", currentUser.ID)
 
+	// 解析请求参数
 	pn := c.DefaultQuery("pn", "1")
 	pnInt, _ := strconv.Atoi(pn)
 	pSize := c.DefaultQuery("psize", "10")
@@ -123,6 +126,7 @@ func GetUserList(c *gin.Context) {
 }
 
 func PassWordLogin(c *gin.Context) {
+	// 1.表单验证
 	passwordLoginForm := forms.PassWordLoginForm{}
 	err := c.ShouldBind(&passwordLoginForm)
 	if err != nil {
@@ -131,6 +135,7 @@ func PassWordLogin(c *gin.Context) {
 		return
 	}
 
+	// 2.Captcha 验证
 	if !store.Verify(passwordLoginForm.CaptchaID, passwordLoginForm.Captcha, true) {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"msg": "验证码错误",
@@ -138,7 +143,7 @@ func PassWordLogin(c *gin.Context) {
 		return
 	}
 
-	// 查看用户是否存在
+	// 3.查看用户是否存在
 	rsp, err := global.UserClient.GetUserByMobile(c, &proto.MobileRequest{Mobile: passwordLoginForm.Name})
 	if err != nil {
 		// fixme: user_srv grpc 返回的错误不只一种,可以看下 grpc 层服务返回哪些错误; 所以这里要拿到错误原因进行判断。
@@ -174,7 +179,7 @@ func PassWordLogin(c *gin.Context) {
 		return
 	}
 
-	// 验证密码
+	// 4.验证密码
 	checkPassWordRsp, err := global.UserClient.CheckPassWord(c, &proto.PasswordCheckInfo{
 		Password:          passwordLoginForm.Password,
 		EncryptedPassword: rsp.Password,
@@ -207,7 +212,7 @@ func PassWordLogin(c *gin.Context) {
 		return
 	}
 
-	// 登陆成功后返回 JWT Token
+	// 5.登陆成功后返回 JWT Token
 	j := middlewares.NewJWT()
 	token, err := j.CreateToken(
 		// 注意，不要在 JWT 的 payload 或 header 中放置敏感信息，除非它们是加密的
@@ -239,7 +244,7 @@ func PassWordLogin(c *gin.Context) {
 }
 
 func Register(c *gin.Context) {
-	// 表单验证
+	// 1.表单验证
 	var registerForm forms.RegisterForm
 	err := c.ShouldBind(&registerForm)
 	if err != nil {
@@ -247,7 +252,7 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	// sms 验证码校验
+	// 2. sms 验证码校验
 	rdb := redis.NewClient(&redis.Options{
 		Addr: fmt.Sprintf("%s:%d", global.SrvConfig.RedisInfo.Host, global.SrvConfig.RedisInfo.Port),
 	})
@@ -266,7 +271,7 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	// 注册用户
+	// 3.注册用户
 	user, err := global.UserClient.CreateUser(c, &proto.CreateUserInfo{
 		NickName: registerForm.Mobile,
 		Password: registerForm.Password,
@@ -277,7 +282,7 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	// 注册成功后返回 JWT Token, 实现 注册即登录; 注册后自动登录。
+	// 4.注册成功后返回 JWT Token, 实现 注册即登录; 注册后自动登录。
 	j := middlewares.NewJWT()
 	token, err := j.CreateToken(
 		// 注意，不要在 JWT 的 payload 或 header 中放置敏感信息，除非它们是加密的

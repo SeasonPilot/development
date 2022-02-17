@@ -18,6 +18,7 @@ type UserRsp struct {
 type JsonTime time.Time
 
 // MarshalJSON 接受者不是 (u *UserRsp)，是字段的类型
+// 转换 BirthDay 格式
 func (t JsonTime) MarshalJSON() ([]byte, error) {
 	// 类型转换，将 t 转换成 time.Time 类型
 	birthday := time.Time(t).Format("2006-01-02")
