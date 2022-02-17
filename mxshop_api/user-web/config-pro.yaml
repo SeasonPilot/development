@@ -1,21 +1,5 @@
-name: user_srv
-port: 8021
-user-srv:
-  host: 127.0.0.1
-  port: 50051
-
-jwt:
-  key: GH0h8xNQN6@zeUIqv7O5sUwh2XWaX#%O
-
-sms:
-  key: LTAI5tENnBtu2g3ZqQX5461b
-  secret: Ab5oHpgUfTSa7drZOQxNuADkLd82JJ
-
-redis:
-  host: 172.19.30.30
-  port: 6379
-  expire: 15
-
-consul:
-  host: 10.94.62.100
-  port: 8500
+host: 172.19.30.30
+port: 8848
+namespace_id: "731b0ec0-4df5-4b84-a2a4-667e41e933cc"
+data_id: "user-web.yaml"
+group: "dev"
