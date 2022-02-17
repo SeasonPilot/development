@@ -2,10 +2,14 @@ package main
 
 import (
 	"fmt"
+	"strings"
+
+	"development/OldPackageTest/nacos_test/config"
 
 	"github.com/nacos-group/nacos-sdk-go/clients"
 	"github.com/nacos-group/nacos-sdk-go/common/constant"
 	"github.com/nacos-group/nacos-sdk-go/vo"
+	"github.com/spf13/viper"
 )
 
 func main() {
@@ -40,7 +44,20 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(content)
+
+	// 从 io.Reader 读取 config
+	viper.SetConfigType("yaml") // or viper.SetConfigType("YAML")
+	//err = viper.ReadConfig(bytes.NewBuffer([]byte(content)))
+	err = viper.ReadConfig(strings.NewReader(content))
+	if err != nil {
+		panic(err)
+	}
+	cfg := config.ServerConfig{}
+	err = viper.Unmarshal(&cfg)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(cfg)
 
 	err = configClient.ListenConfig(vo.ConfigParam{
 		DataId: "user-srv.yaml",
@@ -52,5 +69,4 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
 }
