@@ -1,7 +1,6 @@
 package main
 
 import (
-	"crypto/sha512"
 	"flag"
 	"fmt"
 	"net"
@@ -12,11 +11,9 @@ import (
 	"mxshop-srvs/user_srv/global"
 	"mxshop-srvs/user_srv/handler"
 	"mxshop-srvs/user_srv/initialization"
-	"mxshop-srvs/user_srv/model"
 	"mxshop-srvs/user_srv/proto"
 	"mxshop-srvs/user_srv/utils"
 
-	"github.com/anaskhan96/go-password-encoder"
 	"github.com/google/uuid"
 	"github.com/hashicorp/consul/api"
 	"go.uber.org/zap"
@@ -30,21 +27,6 @@ func main() {
 	initialization.InitConfig()
 	initialization.InitDB()
 
-	//密码加密
-	options := &password.Options{SaltLen: 16, Iterations: 100, KeyLen: 32, HashFunction: sha512.New}
-	salt, encodedPwd := password.Encode("admin123", options)
-	pw := fmt.Sprintf("$pbkdf2-sha512$%s$%s", salt, encodedPwd)
-	fmt.Println(pw)
-
-	for i := 0; i < 10; i++ {
-		user := model.User{
-			Mobile:   fmt.Sprintf("1879876789%d", i),
-			Password: pw,
-			NickName: fmt.Sprintf("bobby%d", i),
-		}
-		global.DB.Save(&user)
-	}
-
 	freePort, err := utils.GetFreePort()
 	if err != nil {
 		panic(err)
@@ -57,7 +39,7 @@ func main() {
 	flag.Parse()
 	zap.S().Info(*ip, *port)
 
-	// 注册服务
+	// 注册用户服务
 	g := grpc.NewServer()
 	proto.RegisterUserServer(g, &handler.UserServer{})
 
@@ -69,7 +51,7 @@ func main() {
 	// 注册 grpc 服务健康检查
 	grpc_health_v1.RegisterHealthServer(g, health.NewServer())
 
-	// 注册服务到 consul
+	// 注册服务到 consul, 即服务注册
 	cfg := api.DefaultConfig()
 	cfg.Address = fmt.Sprintf("%s:%d", global.ServiceConfig.ConsulInfo.Host, global.ServiceConfig.ConsulInfo.Port)
 
