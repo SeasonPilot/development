@@ -2,11 +2,12 @@ package model
 
 type Category struct {
 	BaseModel
-	Name             string `gorm:"type:varchar(50);not null;"`
-	ParentCategoryID int32  `gorm:"type:int"`
-	ParentCategory   *Category
-	Level            int32 `gorm:"type:int;default:1;not null"`
-	IsTab            bool  `gorm:"default:false;not null"`
+	Name             string      `gorm:"type:varchar(50);not null;" json:"name,omitempty"`
+	ParentCategoryID int32       `gorm:"type:int" json:"parent_category_id,omitempty"`
+	ParentCategory   *Category   `json:"-"`
+	SubCategory      []*Category `gorm:"foreignKey:ParentCategoryID;reference:ID" json:"sub_category,omitempty"`
+	Level            int32       `gorm:"type:int;default:1;not null" json:"level,omitempty"`
+	IsTab            bool        `gorm:"default:false;not null" json:"is_tab,omitempty"`
 }
 
 type Brands struct {
