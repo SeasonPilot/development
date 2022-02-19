@@ -146,3 +146,4 @@ fabric.properties
 # End of https://www.toptal.com/developers/gitignore/api/goland!/OldPackageTest/nacos_test/tmp/nacos/cache/config/user-srv.yaml@@dev@@731b0ec0-4df5-4b84-a2a4-667e41e933cc
 !/OldPackageTest/nacos_test/tmp/nacos/cache/config/
 /mxshop_api/user-web/tmp/
+/mxshop_srvs/goods_srv/tmp/
