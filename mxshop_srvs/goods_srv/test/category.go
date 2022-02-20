@@ -20,6 +20,18 @@ func TestCategoryList() {
 	fmt.Println(list.JsonData)
 }
 
+func TestGetSubCategory() {
+	list, err := goodsClient.GetSubCategory(context.Background(), &proto.CategoryListRequest{
+		Id: 130358,
+		//Level: 0,
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(list.SubCategories)
+}
+
 var conn *grpc.ClientConn
 var goodsClient proto.GoodsClient
 
@@ -36,6 +48,7 @@ func main() {
 	Init()
 	defer conn.Close()
 
-	TestGetBrandList()
-	TestCategoryList()
+	//TestGetBrandList()
+	//TestCategoryList()
+	TestGetSubCategory()
 }

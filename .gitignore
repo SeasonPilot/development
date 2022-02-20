@@ -147,3 +147,4 @@ fabric.properties
 !/OldPackageTest/nacos_test/tmp/nacos/cache/config/
 /mxshop_api/user-web/tmp/
 /mxshop_srvs/goods_srv/tmp/
+!/mxshop_srvs/goods_srv/test.log
