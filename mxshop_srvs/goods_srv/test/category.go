@@ -32,6 +32,18 @@ func TestGetSubCategory() {
 	fmt.Println(list.SubCategories)
 }
 
+func TestUpdateCategory() {
+	req := proto.CategoryInfoRequest{
+		Id: 0,
+	}
+	fmt.Printf("\n%#v\n", req)
+	_, err := goodsClient.UpdateCategory(context.Background(), &req)
+	if err != nil {
+		return
+	}
+
+}
+
 var conn *grpc.ClientConn
 var goodsClient proto.GoodsClient
 
@@ -50,5 +62,6 @@ func main() {
 
 	//TestGetBrandList()
 	//TestCategoryList()
-	TestGetSubCategory()
+	//TestGetSubCategory()
+	TestUpdateCategory()
 }
