@@ -8,6 +8,7 @@ import (
 
 	"mxshop-srvs/goods_srv/global"
 
+	"go.uber.org/zap"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -18,6 +19,7 @@ func InitDB() {
 	c := global.ServiceConfig.MysqlInfo
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=true&loc=Local&charset=utf8mb4",
 		c.User, c.Password, c.Host, c.Port, c.Name)
+	zap.S().Infof("数据库连接信息: %s", dsn)
 
 	newLogger := logger.New(
 		log.New(os.Stdout, "\r\n", log.LstdFlags),
