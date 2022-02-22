@@ -66,9 +66,9 @@ func Init() {
 func main() {
 	Init()
 	//TestCreateUser()
-	TestGetGoodsList()
+	//TestGetGoodsList()
 	//TestBatchGetGoods()
-	//TestGetGoodsDetail()
+	TestGetGoodsDetail()
 
 	conn.Close()
 }
