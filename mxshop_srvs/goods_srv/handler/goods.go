@@ -104,6 +104,7 @@ func (s *GoodsServer) GoodsList(c context.Context, req *proto.GoodsFilterRequest
 	rsp.Total = int32(count)
 
 	var goods []model.Goods
+	//fixme: Brands 预加载不出来
 	result := localDB.Preload("Category").Preload("Brands").Scopes(Paginate(int(req.Pages), int(req.PagePerNums))).Find(&goods)
 	if result.Error != nil {
 		return nil, result.Error

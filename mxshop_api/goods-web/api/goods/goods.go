@@ -2,12 +2,16 @@ package goods
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
 
 	"mxshop-api/goods-web/global"
+	"mxshop-api/goods-web/proto"
+	"mxshop-api/goods-web/response"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -74,5 +78,61 @@ func HandleValidatorError(c *gin.Context, err error) {
 }
 
 func List(c *gin.Context) {
+	var req proto.GoodsFilterRequest
 
+	pMax := c.DefaultQuery("pmax", "0")
+	pMaxInt, _ := strconv.Atoi(pMax)
+	req.PriceMax = int32(pMaxInt)
+
+	pMin := c.DefaultQuery("pmin", "0")
+	pMinInt, _ := strconv.Atoi(pMin)
+	req.PriceMin = int32(pMinInt)
+
+	isHot := c.DefaultQuery("ih", "0")
+	// 应该是字符串 1 ,且不用 Atoi
+	if isHot == "1" {
+		req.IsHot = true
+	}
+
+	isNew := c.DefaultQuery("in", "0")
+	if isNew == "1" {
+		req.IsNew = true
+	}
+
+	isTab := c.DefaultQuery("it", "0")
+	if isTab == "1" {
+		req.IsNew = true
+	}
+
+	category := c.DefaultQuery("category", "0")
+	categoryInt, _ := strconv.Atoi(category)
+	req.TopCategory = int32(categoryInt)
+
+	kw := c.DefaultQuery("keyword", "")
+	req.KeyWords = kw
+
+	brand := c.DefaultQuery("brand", "0")
+	brandInt, _ := strconv.Atoi(brand)
+	req.Brand = int32(brandInt)
+
+	// 忘记分页了
+	pages := c.DefaultQuery("p", "0")
+	pagesInt, _ := strconv.Atoi(pages)
+	req.Pages = int32(pagesInt)
+
+	perNums := c.DefaultQuery("pnum", "0")
+	perNumsInt, _ := strconv.Atoi(perNums)
+	req.PagePerNums = int32(perNumsInt)
+
+	rsp, err := global.GoodsClient.GoodsList(c, &req)
+	if err != nil {
+		zap.S().Errorw("[List] 查询 【商品列表】失败")
+		RpcErrToHttpErr(err, c)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"total": rsp.Total,
+		"data":  response.RespToModels(rsp.Data),
+	})
 }
