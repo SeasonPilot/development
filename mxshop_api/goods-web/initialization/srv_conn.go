@@ -13,10 +13,9 @@ import (
 )
 
 func InitSrvConn() {
-	cfg := global.SrvConfig.ConsulInfo
-	//grpc lb;  consul 用户服务发现
+	//grpc lb;
 	conn, err := grpc.Dial(
-		fmt.Sprintf("consul://%s:%d/%s?wait=14s", cfg.Host, cfg.Port, global.SrvConfig.Name),
+		fmt.Sprintf("%s:%d?", global.SrvConfig.GoodsInfo.Host, global.SrvConfig.GoodsInfo.Port),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithDefaultServiceConfig(`{"loadBalancingPolicy": "round_robin"}`),
 	)

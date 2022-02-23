@@ -2,10 +2,15 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"mxshop-api/goods-web/global"
 	"mxshop-api/goods-web/initialization"
+	"mxshop-api/goods-web/registry/consul"
 
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
@@ -30,8 +35,33 @@ func main() {
 	//3. 初始化routers
 	Routers := initialization.Routers()
 
-	err := Routers.Run(fmt.Sprintf(":%d", global.SrvConfig.Port))
+	// 服务注册
+	srvID := uuid.New().String()
+	consulClient := consul.NewConsulClient(global.SrvConfig.ConsulInfo.Host, global.SrvConfig.ConsulInfo.Port)
+	err := consulClient.Register(srvID,
+		global.SrvConfig.Name,
+		global.SrvConfig.Tags,
+		global.SrvConfig.Port,
+		global.SrvConfig.Address,
+	)
 	if err != nil {
-		zap.S().Panicf("服务启动失败: %s", err.Error())
+		panic(err)
+	}
+
+	go func() {
+		err = Routers.Run(fmt.Sprintf(":%d", global.SrvConfig.Port))
+		if err != nil {
+			zap.S().Panicf("服务启动失败: %s", err.Error())
+		}
+	}()
+
+	// 优雅退出; deregister 服务
+	quit := make(chan os.Signal)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	err = consulClient.Deregister(srvID)
+	if err != nil {
+		return
 	}
 }
