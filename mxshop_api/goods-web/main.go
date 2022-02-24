@@ -36,9 +36,10 @@ func main() {
 	Routers := initialization.Routers()
 
 	// 服务注册
+	var rc consul.RegisterClient
 	srvID := uuid.New().String()
-	consulClient := consul.NewConsulClient(global.SrvConfig.ConsulInfo.Host, global.SrvConfig.ConsulInfo.Port)
-	err := consulClient.Register(srvID,
+	rc = consul.NewConsulClient(global.SrvConfig.ConsulInfo.Host, global.SrvConfig.ConsulInfo.Port)
+	err := rc.Register(srvID,
 		global.SrvConfig.Name,
 		global.SrvConfig.Tags,
 		global.SrvConfig.Port,
@@ -60,7 +61,7 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	err = consulClient.Deregister(srvID)
+	err = rc.Deregister(srvID)
 	if err != nil {
 		return
 	}
