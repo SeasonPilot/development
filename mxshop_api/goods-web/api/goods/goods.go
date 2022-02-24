@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"mxshop-api/goods-web/forms"
 	"mxshop-api/goods-web/global"
 	"mxshop-api/goods-web/proto"
 	"mxshop-api/goods-web/response"
@@ -33,7 +34,7 @@ func removeTopStruct(fields map[string]string) map[string]string {
 }
 
 // RpcErrToHttpErr 将 grpc 的 code 转换成 http 的状态码
-func RpcErrToHttpErr(err error, c *gin.Context) {
+func RpcErrToHttpErr(c *gin.Context, err error) {
 	if err != nil {
 		if grpcStatus, ok := status.FromError(err); ok {
 			switch grpcStatus.Code() {
@@ -127,7 +128,7 @@ func List(c *gin.Context) {
 	rsp, err := global.GoodsClient.GoodsList(c, &req)
 	if err != nil {
 		zap.S().Errorw("[List] 查询 【商品列表】失败")
-		RpcErrToHttpErr(err, c)
+		RpcErrToHttpErr(c, err)
 		return
 	}
 
@@ -135,4 +136,53 @@ func List(c *gin.Context) {
 		"total": rsp.Total,
 		"data":  response.RespToModels(rsp.Data),
 	})
+}
+
+func New(c *gin.Context) {
+	goodsForm := forms.GoodsForm{}
+	err := c.ShouldBind(&goodsForm)
+	if err != nil {
+		HandleValidatorError(c, err)
+		return
+	}
+
+	goods, err := global.GoodsClient.CreateGoods(c, &proto.CreateGoodsInfo{
+		Name:            goodsForm.Name,
+		GoodsSn:         goodsForm.GoodsSn,
+		Stocks:          goodsForm.Stocks,
+		MarketPrice:     goodsForm.MarketPrice,
+		ShopPrice:       goodsForm.ShopPrice,
+		GoodsBrief:      goodsForm.GoodsBrief,
+		ShipFree:        *goodsForm.ShipFree,
+		Images:          goodsForm.Images,
+		DescImages:      goodsForm.DescImages,
+		GoodsFrontImage: goodsForm.FrontImage,
+		CategoryId:      goodsForm.CategoryId,
+		BrandId:         goodsForm.Brand,
+	})
+	if err != nil {
+		RpcErrToHttpErr(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, response.RespToModels([]*proto.GoodsInfoResponse{goods}))
+}
+
+func Details(c *gin.Context) {
+	id := c.Param("id")
+	idInt, err := strconv.ParseInt(id, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusNotFound, nil)
+		return
+	}
+
+	rsp, err := global.GoodsClient.GetGoodsDetail(c, &proto.GoodInfoRequest{
+		Id: int32(idInt),
+	})
+	if err != nil {
+		RpcErrToHttpErr(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, response.RespToModels([]*proto.GoodsInfoResponse{rsp}))
 }
