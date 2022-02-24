@@ -26,7 +26,9 @@ type ConsulConfig struct {
 
 type ServerConfig struct {
 	Name       string        `mapstructure:"name"`
+	Address    string        `mapstructure:"address"`
 	Port       int           `structure:"port"`
+	Tags       []string      `mapstructure:"tags"`
 	UserInfo   UserSrvConfig `mapstructure:"user-srv"`
 	JWTInfo    JWTConfig     `mapstructure:"jwt"`
 	AliSmsInfo AliSmsConfig  `mapstructure:"sms"`
