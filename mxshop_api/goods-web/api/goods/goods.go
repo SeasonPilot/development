@@ -186,3 +186,105 @@ func Details(c *gin.Context) {
 
 	c.JSON(http.StatusOK, response.RespToModels([]*proto.GoodsInfoResponse{rsp}))
 }
+
+func Delete(c *gin.Context) {
+	id := c.Param("id")
+	idInt, err := strconv.ParseInt(id, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusNotFound, nil)
+		return
+	}
+
+	_, err = global.GoodsClient.DeleteGoods(c, &proto.DeleteGoodsInfo{
+		Id: int32(idInt),
+	})
+	if err != nil {
+		RpcErrToHttpErr(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, nil)
+}
+
+func Stocks(c *gin.Context) {
+	id := c.Param("id")
+	_, err := strconv.ParseInt(id, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusNotFound, nil)
+		return
+	}
+
+	//TODO 商品的库存
+	c.JSON(http.StatusOK, nil)
+}
+
+func UpdateStatus(c *gin.Context) {
+	id := c.Param("id")
+	idInt, err := strconv.ParseInt(id, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusNotFound, nil)
+		return
+	}
+
+	goodsStatusForm := forms.GoodsStatusForm{}
+	err = c.ShouldBind(&goodsStatusForm)
+	if err != nil {
+		HandleValidatorError(c, err)
+		return
+	}
+
+	_, err = global.GoodsClient.UpdateGoods(c, &proto.CreateGoodsInfo{
+		Id:     int32(idInt),
+		IsNew:  *goodsStatusForm.IsNew,
+		IsHot:  *goodsStatusForm.IsHot,
+		OnSale: *goodsStatusForm.OnSale,
+	})
+	if err != nil {
+		RpcErrToHttpErr(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"msg": "修改成功",
+	})
+}
+
+func Update(c *gin.Context) {
+	id := c.Param("id")
+	idInt, err := strconv.ParseInt(id, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusNotFound, nil)
+		return
+	}
+
+	goodsForm := forms.GoodsForm{}
+	err = c.ShouldBind(&goodsForm)
+	if err != nil {
+		HandleValidatorError(c, err)
+		return
+	}
+
+	_, err = global.GoodsClient.UpdateGoods(c, &proto.CreateGoodsInfo{
+		Id:              int32(idInt),
+		Name:            goodsForm.Name,
+		GoodsSn:         goodsForm.GoodsSn,
+		Stocks:          goodsForm.Stocks,
+		MarketPrice:     goodsForm.MarketPrice,
+		ShopPrice:       goodsForm.ShopPrice,
+		GoodsBrief:      goodsForm.GoodsBrief,
+		ShipFree:        *goodsForm.ShipFree,
+		Images:          goodsForm.Images,
+		DescImages:      goodsForm.DescImages,
+		GoodsFrontImage: goodsForm.FrontImage,
+		CategoryId:      goodsForm.CategoryId,
+		BrandId:         goodsForm.Brand,
+	})
+	if err != nil {
+		RpcErrToHttpErr(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"msg": "更新成功",
+	})
+}

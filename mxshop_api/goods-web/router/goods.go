@@ -12,6 +12,11 @@ func InitGoodsRouter(r *gin.RouterGroup) {
 	{
 		group.GET("", goods.List)
 		group.POST("", middlewares.JWTAuth(), middlewares.IsAdminAuth(), goods.New)
-		group.GET(":id", goods.Details)
+		group.GET("/:id", goods.Details)
+		group.DELETE("/:id", middlewares.JWTAuth(), middlewares.IsAdminAuth(), goods.Delete)
+		group.GET("/:id/stocks", goods.Stocks)
+
+		group.PUT("/:id", middlewares.JWTAuth(), middlewares.IsAdminAuth(), goods.Update)
+		group.PATCH("/:id", middlewares.JWTAuth(), middlewares.IsAdminAuth(), goods.UpdateStatus)
 	}
 }
