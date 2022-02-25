@@ -3,80 +3,16 @@ package goods
 import (
 	"net/http"
 	"strconv"
-	"strings"
 
+	"mxshop-api/goods-web/api"
 	"mxshop-api/goods-web/forms"
 	"mxshop-api/goods-web/global"
 	"mxshop-api/goods-web/proto"
 	"mxshop-api/goods-web/response"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
 	"go.uber.org/zap"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
-
-/*
-removeTopStruct 移除 `PassWordLoginForm.`
-{
-    "msg": {
-        "PassWordLoginForm.password": "password长度必须至少为3个字符"
-    }
-}
-*/
-func removeTopStruct(fields map[string]string) map[string]string {
-	resp := make(map[string]string, len(fields))
-	for k, v := range fields {
-		resp[k[strings.Index(k, ".")+1:]] = v
-	}
-	return resp
-}
-
-// RpcErrToHttpErr 将 grpc 的 code 转换成 http 的状态码
-func RpcErrToHttpErr(c *gin.Context, err error) {
-	if err != nil {
-		if grpcStatus, ok := status.FromError(err); ok {
-			switch grpcStatus.Code() {
-			case codes.NotFound:
-				c.JSON(http.StatusNotFound, gin.H{
-					"msg": grpcStatus.Message(),
-				})
-			case codes.Internal:
-				c.JSON(http.StatusInternalServerError, gin.H{
-					// 不能直接返回  grpcStatus.Message() ,会暴露过多信息给用户,如敏感信息。
-					// 不能把 grpc 内部错误暴露给用户，不友好
-					"msg": "内部错误",
-				})
-			case codes.InvalidArgument:
-				c.JSON(http.StatusBadRequest, gin.H{
-					"msg": "参数错误",
-				})
-			case codes.Unavailable:
-				c.JSON(http.StatusServiceUnavailable, gin.H{
-					"msg": "用户服务不可用",
-				})
-			default:
-				c.JSON(http.StatusInternalServerError, gin.H{
-					"msg": grpcStatus.Code(),
-				})
-			}
-		}
-	}
-}
-
-// HandleValidatorError 处理 Validator 的错误
-func HandleValidatorError(c *gin.Context, err error) {
-	if errs, ok := err.(validator.ValidationErrors); ok {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"msg": removeTopStruct(errs.Translate(global.Translator)),
-		})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{
-		"msg": err.Error(),
-	})
-}
 
 func List(c *gin.Context) {
 	var req proto.GoodsFilterRequest
@@ -128,7 +64,7 @@ func List(c *gin.Context) {
 	rsp, err := global.GoodsClient.GoodsList(c, &req)
 	if err != nil {
 		zap.S().Errorw("[List] 查询 【商品列表】失败")
-		RpcErrToHttpErr(c, err)
+		api.RpcErrToHttpErr(c, err)
 		return
 	}
 
@@ -142,7 +78,7 @@ func New(c *gin.Context) {
 	goodsForm := forms.GoodsForm{}
 	err := c.ShouldBind(&goodsForm)
 	if err != nil {
-		HandleValidatorError(c, err)
+		api.HandleValidatorError(c, err)
 		return
 	}
 
@@ -161,7 +97,7 @@ func New(c *gin.Context) {
 		BrandId:         goodsForm.Brand,
 	})
 	if err != nil {
-		RpcErrToHttpErr(c, err)
+		api.RpcErrToHttpErr(c, err)
 		return
 	}
 
@@ -180,7 +116,7 @@ func Details(c *gin.Context) {
 		Id: int32(idInt),
 	})
 	if err != nil {
-		RpcErrToHttpErr(c, err)
+		api.RpcErrToHttpErr(c, err)
 		return
 	}
 
@@ -199,7 +135,7 @@ func Delete(c *gin.Context) {
 		Id: int32(idInt),
 	})
 	if err != nil {
-		RpcErrToHttpErr(c, err)
+		api.RpcErrToHttpErr(c, err)
 		return
 	}
 
@@ -229,7 +165,7 @@ func UpdateStatus(c *gin.Context) {
 	goodsStatusForm := forms.GoodsStatusForm{}
 	err = c.ShouldBind(&goodsStatusForm)
 	if err != nil {
-		HandleValidatorError(c, err)
+		api.HandleValidatorError(c, err)
 		return
 	}
 
@@ -240,7 +176,7 @@ func UpdateStatus(c *gin.Context) {
 		OnSale: *goodsStatusForm.OnSale,
 	})
 	if err != nil {
-		RpcErrToHttpErr(c, err)
+		api.RpcErrToHttpErr(c, err)
 		return
 	}
 
@@ -260,7 +196,7 @@ func Update(c *gin.Context) {
 	goodsForm := forms.GoodsForm{}
 	err = c.ShouldBind(&goodsForm)
 	if err != nil {
-		HandleValidatorError(c, err)
+		api.HandleValidatorError(c, err)
 		return
 	}
 
@@ -280,7 +216,7 @@ func Update(c *gin.Context) {
 		BrandId:         goodsForm.Brand,
 	})
 	if err != nil {
-		RpcErrToHttpErr(c, err)
+		api.RpcErrToHttpErr(c, err)
 		return
 	}
 
