@@ -12,7 +12,6 @@ import (
 	"mxshop-srvs/goods_srv/handler"
 	"mxshop-srvs/goods_srv/initialization"
 	"mxshop-srvs/goods_srv/proto"
-	"mxshop-srvs/goods_srv/utils"
 
 	"github.com/google/uuid"
 	"github.com/hashicorp/consul/api"
@@ -27,13 +26,13 @@ func main() {
 	initialization.InitConfig()
 	initialization.InitDB()
 
-	freePort, err := utils.GetFreePort()
-	if err != nil {
-		panic(err)
-	}
+	//freePort, err := utils.GetFreePort()
+	//if err != nil {
+	//	panic(err)
+	//}
 
 	ip := flag.String("ip", "0.0.0.0", "ip 地址")
-	port := flag.Int("port", freePort, "端口号")
+	port := flag.Int("port", 50051, "端口号")
 
 	flag.Parse()
 	zap.S().Infof("ip: %s, port: %d", *ip, *port)

@@ -18,6 +18,7 @@ func Routers() *gin.Engine {
 	router.InitGoodsRouter(ApiGroup)
 	router.InitCategoryRouter(ApiGroup)
 	router.InitBannerRouter(ApiGroup)
+	router.InitBrandRouter(ApiGroup)
 
 	return Router
 }
