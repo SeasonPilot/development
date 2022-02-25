@@ -17,6 +17,7 @@ func Routers() *gin.Engine {
 	ApiGroup := Router.Group("/v1")
 	router.InitGoodsRouter(ApiGroup)
 	router.InitCategoryRouter(ApiGroup)
+	router.InitBannerRouter(ApiGroup)
 
 	return Router
 }
