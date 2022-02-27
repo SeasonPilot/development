@@ -10,8 +10,8 @@ service Inventory {
 }
 
 message GoodsInvInfo {
-  string GoodsID = 1;
-  string Num = 2;
+  int32 GoodsID = 1;
+  int32 Num = 2;
 }
 
 message SellInfo {
