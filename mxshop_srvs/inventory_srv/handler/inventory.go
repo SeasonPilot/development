@@ -42,7 +42,30 @@ func (InventoryServer) InvDetail(ctx context.Context, info *proto.GoodsInvInfo) 
 }
 
 func (InventoryServer) Sell(ctx context.Context, info *proto.SellInfo) (*emptypb.Empty, error) {
-	panic("implement me")
+	// 一个订单是一个事务,一个订单(购物车)包含多个商品
+	tx := global.DB.Begin()
+
+	for _, good := range info.GoodsInfo {
+		var inv model.Inventory
+		if result := tx.First(&inv, "Goods = ?", good.GoodsID); result.RowsAffected == 0 {
+			tx.Rollback()
+			return nil, status.Errorf(codes.NotFound, "商品库存信息不存在")
+		}
+
+		if inv.Stocks < good.Num {
+			tx.Rollback()
+			return nil, status.Errorf(codes.ResourceExhausted, "%s 库存不足", good.GoodsID)
+		}
+
+		inv.Stocks -= good.Num // 要记得扣除库存
+		if result := tx.Save(&inv); result.RowsAffected == 0 {
+			tx.Rollback()
+			return nil, status.Errorf(codes.Internal, result.Error.Error())
+		}
+	}
+
+	tx.Commit()
+	return &emptypb.Empty{}, nil
 }
 
 func (InventoryServer) Reback(ctx context.Context, info *proto.SellInfo) (*emptypb.Empty, error) {
