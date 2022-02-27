@@ -9,11 +9,11 @@ import (
 	"syscall"
 
 	"mxshop-srvs/inventory_srv/global"
-	"mxshop-srvs/inventory_srv/handler"
 	"mxshop-srvs/inventory_srv/initialization"
+	"mxshop-srvs/inventory_srv/proto"
+	"mxshop-srvs/inventory_srv/utils/registry/consul"
 
 	"github.com/google/uuid"
-	"github.com/hashicorp/consul/api"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
@@ -37,7 +37,7 @@ func main() {
 
 	// 注册用户服务
 	g := grpc.NewServer()
-	proto.RegisterGoodsServer(g, &handler.GoodsServer{})
+	proto.RegisterInventoryServer(g, &proto.UnimplementedInventoryServer{})
 
 	listen, err := net.Listen("tcp", fmt.Sprintf("%s:%d", *ip, *port))
 	if err != nil {
@@ -47,32 +47,6 @@ func main() {
 	// 注册 grpc 服务健康检查
 	grpc_health_v1.RegisterHealthServer(g, health.NewServer())
 
-	// 注册服务到 consul, 即服务注册
-	cfg := api.DefaultConfig()
-	cfg.Address = fmt.Sprintf("%s:%d", global.ServiceConfig.ConsulInfo.Host, global.ServiceConfig.ConsulInfo.Port)
-
-	client, err := api.NewClient(cfg)
-	if err != nil {
-		panic(err)
-	}
-	srvID := uuid.New().String()
-	err = client.Agent().ServiceRegister(&api.AgentServiceRegistration{
-		ID:      srvID,
-		Name:    global.ServiceConfig.Name,
-		Tags:    global.ServiceConfig.Tags,
-		Port:    *port,
-		Address: global.ServiceConfig.Host,
-		Check: &api.AgentServiceCheck{
-			Interval:                       "5s",
-			Timeout:                        "5s",
-			GRPC:                           fmt.Sprintf("%s:%d", global.ServiceConfig.Host, *port),
-			DeregisterCriticalServiceAfter: "15s",
-		},
-	})
-	if err != nil {
-		panic(err)
-	}
-
 	go func() {
 		// 启动服务
 		err = g.Serve(listen)
@@ -81,15 +55,27 @@ func main() {
 		}
 	}()
 
+	// 服务注册
+	var rc consul.RegisterClient
+	srvID := uuid.New().String()
+	rc = consul.NewConsulClient(global.ServiceConfig.ConsulInfo.Host, global.ServiceConfig.ConsulInfo.Port)
+	err = rc.Register(srvID,
+		global.ServiceConfig.Name,
+		global.ServiceConfig.Tags,
+		*port,
+		global.ServiceConfig.Host,
+	)
+	if err != nil {
+		panic(err)
+	}
+
 	// 优雅退出; deregister 服务
 	quit := make(chan os.Signal)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	err = client.Agent().ServiceDeregister(srvID)
+	err = rc.Deregister(srvID)
 	if err != nil {
-		zap.S().Errorf("注销服务失败: %s, %s", global.ServiceConfig.Name, srvID)
 		return
 	}
-	zap.S().Info("注销成功")
 }
