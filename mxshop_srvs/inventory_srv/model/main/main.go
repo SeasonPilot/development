@@ -13,7 +13,7 @@ import (
 )
 
 func main() {
-	dsn := "golang:golang@2020@tcp(172.19.30.30:3306)/goods_test?parseTime=true&loc=Local&charset=utf8mb4"
+	dsn := "golang:golang@2020@tcp(172.19.30.30:3306)/mxshop_inventory_srv?parseTime=true&loc=Local&charset=utf8mb4"
 
 	newLogger := logger.New(
 		log.New(os.Stdout, "\r\n", log.LstdFlags),
@@ -31,8 +31,7 @@ func main() {
 		panic(err)
 	}
 
-	err = db.AutoMigrate(&model.Category{},
-		&model.Brands{}, &model.GoodsCategoryBrand{}, &model.Banner{}, &model.Goods{})
+	err = db.AutoMigrate(&model.Inventory{})
 	if err != nil {
 		panic(err)
 	}

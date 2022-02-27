@@ -6,3 +6,7 @@ type Inventory struct {
 	Stocks  int32 `gorm:"type:int"`
 	Version int32 `gorm:"type:int"` //分布式锁的乐观锁
 }
+
+func (Inventory) TableName() string {
+	return "inventory"
+}

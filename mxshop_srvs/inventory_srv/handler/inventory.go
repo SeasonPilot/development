@@ -49,13 +49,13 @@ func (InventoryServer) Sell(ctx context.Context, info *proto.SellInfo) (*emptypb
 		var inv model.Inventory
 		if result := tx.First(&inv, "Goods = ?", good.GoodsID); result.RowsAffected == 0 {
 			tx.Rollback()
-			return nil, status.Errorf(codes.NotFound, "商品库存信息不存在")
+			return nil, status.Errorf(codes.NotFound, "GoodsID: %d, 商品库存信息不存在", good.GoodsID)
 		}
 
 		// 判断库存是否充足
 		if inv.Stocks < good.Num {
 			tx.Rollback()
-			return nil, status.Errorf(codes.ResourceExhausted, "%s 库存不足", good.GoodsID)
+			return nil, status.Errorf(codes.ResourceExhausted, "GoodsID: %d, 库存不足", good.GoodsID)
 		}
 
 		// 扣减库存
@@ -77,7 +77,7 @@ func (InventoryServer) Reback(ctx context.Context, info *proto.SellInfo) (*empty
 		var inv model.Inventory
 		if result := tx.First(&inv, "Goods = ?", good.GoodsID); result.RowsAffected == 0 {
 			tx.Rollback()
-			return nil, status.Errorf(codes.NotFound, "商品库存信息不存在")
+			return nil, status.Errorf(codes.NotFound, "GoodsID: %d, 商品库存信息不存在", good.GoodsID)
 		}
 
 		// 归还库存

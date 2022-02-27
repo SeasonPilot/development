@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	"mxshop-srvs/inventory_srv/global"
+	"mxshop-srvs/inventory_srv/handler"
 	"mxshop-srvs/inventory_srv/initialization"
 	"mxshop-srvs/inventory_srv/proto"
 	"mxshop-srvs/inventory_srv/utils/registry/consul"
@@ -37,7 +38,7 @@ func main() {
 
 	// 注册用户服务
 	g := grpc.NewServer()
-	proto.RegisterInventoryServer(g, &proto.UnimplementedInventoryServer{})
+	proto.RegisterInventoryServer(g, &handler.InventoryServer{})
 
 	listen, err := net.Listen("tcp", fmt.Sprintf("%s:%d", *ip, *port))
 	if err != nil {
