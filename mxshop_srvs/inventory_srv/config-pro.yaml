@@ -1,0 +1,6 @@
+# nacos 信息
+host: 172.19.30.30
+port: 8848
+namespace_id: "6960fb63-7398-43c8-ad42-cdefd934fdfe"
+data_id: "goods-srv.yaml"
+group: "dev"
