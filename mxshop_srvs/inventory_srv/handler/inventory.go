@@ -2,11 +2,11 @@ package handler
 
 import (
 	"context"
-	"sync"
-
 	"mxshop-srvs/inventory_srv/global"
 	"mxshop-srvs/inventory_srv/model"
 	"mxshop-srvs/inventory_srv/proto"
+
+	"gorm.io/gorm/clause"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -43,16 +43,17 @@ func (InventoryServer) InvDetail(ctx context.Context, info *proto.GoodsInvInfo) 
 }
 
 // 全局锁,所有协程共用一把锁
-var m sync.Mutex
+//var m sync.Mutex
 
 func (InventoryServer) Sell(ctx context.Context, info *proto.SellInfo) (*emptypb.Empty, error) {
 	// 一个订单是一个事务,一个订单(购物车)包含多个商品
 	tx := global.DB.Begin()
-	m.Lock()
+	//m.Lock()
 
 	for _, good := range info.GoodsInfo {
 		var inv model.Inventory
-		if result := tx.First(&inv, "Goods = ?", good.GoodsID); result.RowsAffected == 0 {
+		// MySQL 悲观锁
+		if result := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&inv, "Goods = ?", good.GoodsID); result.RowsAffected == 0 {
 			tx.Rollback()
 			return nil, status.Errorf(codes.NotFound, "GoodsID: %d, 商品库存信息不存在", good.GoodsID)
 		}
@@ -72,7 +73,7 @@ func (InventoryServer) Sell(ctx context.Context, info *proto.SellInfo) (*emptypb
 	}
 
 	tx.Commit()
-	m.Unlock()
+	//m.Unlock()
 	return &emptypb.Empty{}, nil
 }
 
