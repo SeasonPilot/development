@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"mxshop-srvs/inventory_srv/proto"
 
@@ -36,23 +37,23 @@ func TestDetail(goodsID int32) {
 	fmt.Println(rsp.Num)
 }
 
-func TestSell() {
+func TestSell(wg *sync.WaitGroup) {
 	/*
 		1. 第一件扣减成功： 第二件： 1. 没有库存信息 2. 库存不足
 		2. 两件都扣减成功
 	*/
+	defer wg.Done()
 	_, err := inventoryClient.Sell(context.Background(), &proto.SellInfo{
 		GoodsInfo: []*proto.GoodsInvInfo{
 			{
 				GoodsID: 421,
-				Num:     10,
+				Num:     1,
 			},
-			{
-				GoodsID: 422,
-				Num:     20,
-			},
+			//{
+			//	GoodsID: 422,
+			//	Num:     20,
+			//},
 		},
-		OrderSn: "",
 	},
 	)
 	if err != nil {
@@ -93,9 +94,20 @@ func Init() {
 
 func main() {
 	Init()
-	//TestSetInv(422, 30)
+
+	var i int32
+	//for i = 421; i < 840; i++ {
+	//	TestSetInv(i, 100)
+	//}
+
 	//TestDetail(421)
-	//TestSell()
-	TestReback()
-	conn.Close()
+
+	var wg sync.WaitGroup
+	wg.Add(20)
+	for i = 0; i < 20; i++ {
+		go TestSell(&wg)
+	}
+	wg.Wait()
+	//TestReback()
+	defer conn.Close()
 }

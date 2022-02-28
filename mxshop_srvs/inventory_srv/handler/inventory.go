@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"sync"
 
 	"mxshop-srvs/inventory_srv/global"
 	"mxshop-srvs/inventory_srv/model"
@@ -41,9 +42,13 @@ func (InventoryServer) InvDetail(ctx context.Context, info *proto.GoodsInvInfo) 
 	}, nil
 }
 
+// 全局锁,所有协程共用一把锁
+var m sync.Mutex
+
 func (InventoryServer) Sell(ctx context.Context, info *proto.SellInfo) (*emptypb.Empty, error) {
 	// 一个订单是一个事务,一个订单(购物车)包含多个商品
 	tx := global.DB.Begin()
+	m.Lock()
 
 	for _, good := range info.GoodsInfo {
 		var inv model.Inventory
@@ -67,6 +72,7 @@ func (InventoryServer) Sell(ctx context.Context, info *proto.SellInfo) (*emptypb
 	}
 
 	tx.Commit()
+	m.Unlock()
 	return &emptypb.Empty{}, nil
 }
 
