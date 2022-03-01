@@ -1,0 +1,6 @@
+# nacos 信息
+host: 172.19.30.30
+port: 8848
+namespace_id: "fbd11c93-22d2-4f22-828f-679374fdfe84"
+data_id: "inventory-srv.yaml"
+group: "dev"
