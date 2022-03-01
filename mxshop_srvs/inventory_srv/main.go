@@ -25,6 +25,8 @@ func main() {
 	initialization.InitLogger()
 	initialization.InitConfig()
 	initialization.InitDB()
+	initialization.InitRedisClient()
+	initialization.InitRedSync()
 
 	//freePort, err := utils.GetFreePort()
 	//if err != nil {

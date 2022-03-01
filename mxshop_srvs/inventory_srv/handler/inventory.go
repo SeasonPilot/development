@@ -2,12 +2,12 @@ package handler
 
 import (
 	"context"
+	"fmt"
 
 	"mxshop-srvs/inventory_srv/global"
 	"mxshop-srvs/inventory_srv/model"
 	"mxshop-srvs/inventory_srv/proto"
 
-	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -51,33 +51,35 @@ func (InventoryServer) Sell(ctx context.Context, info *proto.SellInfo) (*emptypb
 	//m.Lock()
 
 	for _, good := range info.GoodsInfo {
+		mutex := global.RedSync.NewMutex(fmt.Sprintf("goods_%d", good.GoodsID))
 
-		for {
-			var inv model.Inventory
-			if result := global.DB.First(&inv, "Goods = ?", good.GoodsID); result.RowsAffected == 0 {
-				tx.Rollback()
-				return nil, status.Errorf(codes.NotFound, "GoodsID: %d, 商品库存信息不存在", good.GoodsID)
-			}
+		err := mutex.Lock()
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "获取redis分布式锁异常: %s", err.Error())
+		}
 
-			// 判断库存是否充足
-			if inv.Stocks < good.Num {
-				tx.Rollback()
-				return nil, status.Errorf(codes.ResourceExhausted, "GoodsID: %d, 库存不足", good.GoodsID)
-			}
+		var inv model.Inventory
+		if result := global.DB.First(&inv, "Goods = ?", good.GoodsID); result.RowsAffected == 0 {
+			tx.Rollback()
+			return nil, status.Errorf(codes.NotFound, "GoodsID: %d, 商品库存信息不存在", good.GoodsID)
+		}
 
-			// 扣减库存
-			inv.Stocks -= good.Num // 要记得扣除库存
+		// 判断库存是否充足
+		if inv.Stocks < good.Num {
+			tx.Rollback()
+			return nil, status.Errorf(codes.ResourceExhausted, "GoodsID: %d, 库存不足", good.GoodsID)
+		}
 
-			// fixme: Where() 当使用 结构体 作为条件查询时，GORM 只会查询非零值字段
-			if result := tx.Model(&model.Inventory{}).Select("Stocks", "Version").Where(
-				"goods = ? and version = ?", inv.Goods, inv.Version).Updates(&model.Inventory{
-				Stocks:  inv.Stocks,
-				Version: inv.Version + 1,
-			}); result.RowsAffected == 0 {
-				zap.S().Infof("库存扣减失败,重试。")
-			} else {
-				break
-			}
+		// 扣减库存
+		inv.Stocks -= good.Num // 要记得扣除库存
+
+		if result := tx.Save(&inv); result.RowsAffected == 0 {
+			return nil, status.Errorf(codes.Internal, result.Error.Error())
+		}
+
+		ok, err := mutex.Unlock()
+		if !ok || err != nil {
+			return nil, status.Errorf(codes.Internal, "释放redis分布式锁异常: %s", err.Error())
 		}
 	}
 
