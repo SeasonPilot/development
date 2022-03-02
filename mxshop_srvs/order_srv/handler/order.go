@@ -98,7 +98,32 @@ func (OrderServer) CreateOrder(ctx context.Context, request *proto.OrderRequest)
 }
 
 func (OrderServer) OrderList(ctx context.Context, request *proto.OrderFilterRequest) (*proto.OrderListResponse, error) {
-	panic("implement me")
+	var (
+		total  int64
+		rsp    proto.OrderListResponse
+		orders []model.OrderInfo
+	)
+
+	global.DB.Where(model.OrderInfo{User: request.UserId}).Count(&total)
+	rsp.Total = int32(total)
+
+	global.DB.Scopes(Paginate(int(request.Pages), int(request.PagePerNums))).Where(&model.OrderInfo{User: request.UserId}).Find(&orders)
+	for _, order := range orders {
+		rsp.Data = append(rsp.Data, &proto.OrderInfoResponse{
+			Id:      order.ID,
+			UserId:  order.User,
+			OrderSn: order.OrderSn,
+			PayType: order.PayType,
+			Status:  order.Status,
+			Post:    order.Post,
+			Total:   order.OrderMount,
+			Address: order.Address,
+			Name:    order.SignerName,
+			Mobile:  order.SingerMobile,
+			AddTime: order.CreatedAt.Format("2006-01-02 15:04:05"),
+		})
+	}
+	return &rsp, nil
 }
 
 func (OrderServer) OrderDetail(ctx context.Context, request *proto.OrderRequest) (*proto.OrderInfoDetailResponse, error) {
