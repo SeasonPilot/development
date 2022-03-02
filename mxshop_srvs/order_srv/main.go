@@ -40,7 +40,7 @@ func main() {
 
 	// 注册用户服务
 	g := grpc.NewServer()
-	proto.RegisterInventoryServer(g, &handler.InventoryServer{})
+	proto.RegisterOrderServer(g, &handler.OrderServer{})
 
 	listen, err := net.Listen("tcp", fmt.Sprintf("%s:%d", *ip, *port))
 	if err != nil {
