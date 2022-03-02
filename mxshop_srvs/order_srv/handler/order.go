@@ -3,6 +3,9 @@ package handler
 import (
 	"context"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	"mxshop-srvs/order_srv/global"
 	"mxshop-srvs/order_srv/model"
 	"mxshop-srvs/order_srv/proto"
@@ -64,11 +67,30 @@ func (OrderServer) CreateCartItem(ctx context.Context, request *proto.CartItemRe
 }
 
 func (OrderServer) UpdateCartItem(ctx context.Context, request *proto.CartItemRequest) (*emptypb.Empty, error) {
-	panic("implement me")
+	//更新购物车记录，更新数量和选中状态
+	var cart model.ShoppingCart
+
+	if result := global.DB.First(&cart, request.Id); result.RowsAffected == 0 {
+		return nil, status.Errorf(codes.NotFound, "购物车记录不存在")
+	}
+
+	cart.Checked = request.Checked
+	if request.Nums > 0 {
+		cart.Nums = request.Nums
+	}
+	if result := global.DB.Save(&cart); result.Error != nil {
+		return nil, result.Error
+	}
+
+	return &emptypb.Empty{}, nil
 }
 
 func (OrderServer) DeleteCartItem(ctx context.Context, request *proto.CartItemRequest) (*emptypb.Empty, error) {
-	panic("implement me")
+	// 删除时可以不用先查询，直接删除即可
+	if result := global.DB.Delete(&model.ShoppingCart{}, request.Id); result.RowsAffected == 0 {
+		return nil, status.Errorf(codes.NotFound, "购物车记录不存在")
+	}
+	return &emptypb.Empty{}, nil
 }
 
 func (OrderServer) CreateOrder(ctx context.Context, request *proto.OrderRequest) (*proto.OrderInfoResponse, error) {
