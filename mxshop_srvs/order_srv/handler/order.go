@@ -127,7 +127,46 @@ func (OrderServer) OrderList(ctx context.Context, request *proto.OrderFilterRequ
 }
 
 func (OrderServer) OrderDetail(ctx context.Context, request *proto.OrderRequest) (*proto.OrderInfoDetailResponse, error) {
-	panic("implement me")
+	var (
+		order model.OrderInfo
+		rsp   proto.OrderInfoDetailResponse
+		goods []model.OrderGoods
+	)
+
+	//这个订单的id是否是当前用户的订单， 如果在web层用户传递过来一个id的订单， web层应该先查询一下订单id是否是当前用户的
+	//在个人中心可以这样做，但是如果是后台管理系统，web层如果是后台管理系统 那么只传递order的id，如果是电商系统还需要一个用户的id
+	if result := global.DB.Where(&model.OrderInfo{User: request.UserId, BaseModel: model.BaseModel{ID: request.Id}}).First(&order); result.RowsAffected == 0 {
+		return nil, status.Errorf(codes.NotFound, "订单不存在")
+	}
+	orderInfo := proto.OrderInfoResponse{}
+	orderInfo.Id = order.ID
+	orderInfo.UserId = order.User
+	orderInfo.OrderSn = order.OrderSn
+	orderInfo.PayType = order.PayType
+	orderInfo.Status = order.Status
+	orderInfo.Post = order.Post
+	orderInfo.Total = order.OrderMount
+	orderInfo.Address = order.Address
+	orderInfo.Name = order.SignerName
+	orderInfo.Mobile = order.SingerMobile
+
+	rsp.OrderInfo = &orderInfo
+
+	if result := global.DB.Find(&goods, "order", request.Id); result.Error != nil {
+		return nil, result.Error
+	}
+
+	for _, orderGood := range goods {
+		rsp.Goods = append(rsp.Goods, &proto.OrderItemResponse{
+			GoodsId:    orderGood.Goods,
+			GoodsName:  orderGood.GoodsName,
+			GoodsPrice: orderGood.GoodsPrice,
+			GoodsImage: orderGood.GoodsImage,
+			Nums:       orderGood.Nums,
+		})
+	}
+
+	return &rsp, nil
 }
 
 func (OrderServer) UpdateOrderStatus(ctx context.Context, status *proto.OrderStatus) (*emptypb.Empty, error) {
