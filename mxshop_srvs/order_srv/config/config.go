@@ -1,12 +1,22 @@
 package config
 
 type ServerConfig struct {
-	Name       string       `mapstructure:"name"`
-	Host       string       `mapstructure:"host"`
-	Tags       []string     `mapstructure:"tags"`
-	MysqlInfo  MysqlConfig  `mapstructure:"mysql"`
-	ConsulInfo ConsulConfig `mapstructure:"consul"`
-	RedisInfo  RedisConfig  `mapstructure:"redis"`
+	Name       string         `mapstructure:"name"`
+	Host       string         `mapstructure:"host"`
+	Tags       []string       `mapstructure:"tags"`
+	MysqlInfo  MysqlConfig    `mapstructure:"mysql"`
+	ConsulInfo ConsulConfig   `mapstructure:"consul"`
+	RedisInfo  RedisConfig    `mapstructure:"redis"`
+	GoodsInfo  GoodsSrvConfig `mapstructure:"goods_info"`
+	InvInfo    InvSrvConfig   `mapstructure:"inv_info"`
+}
+
+type GoodsSrvConfig struct {
+	Name string `mapstructure:"name"`
+}
+
+type InvSrvConfig struct {
+	Name string `mapstructure:"name"`
 }
 
 type RedisConfig struct {

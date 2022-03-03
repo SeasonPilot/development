@@ -94,7 +94,96 @@ func (OrderServer) DeleteCartItem(ctx context.Context, request *proto.CartItemRe
 }
 
 func (OrderServer) CreateOrder(ctx context.Context, request *proto.OrderRequest) (*proto.OrderInfoResponse, error) {
-	panic("implement me")
+	/*
+		1．从购物车中获取到选中的商品
+		2．商品的价格自己查询—访问商品服务（跨微服务）
+		3．库存的扣减—访问库存服务（跨微服务）
+		4．订单的基本信息表—订单的商品信息表
+		5．从购物车中删除已购买的记录
+	*/
+
+	// 1．从购物车中获取到选中的商品
+	var (
+		carts    []model.ShoppingCart
+		goodsIDs []int32
+	)
+	// map 必现要初始化后才能使用
+	goodsAndNums := make(map[int32]int32)
+
+	if result := global.DB.Where(&model.ShoppingCart{User: request.UserId, Checked: true}).Find(&carts); result.RowsAffected == 0 {
+		return nil, status.Errorf(codes.InvalidArgument, "没有选中结算的商品")
+	}
+
+	for _, cart := range carts {
+		goodsIDs = append(goodsIDs, cart.Goods)
+		goodsAndNums[cart.Goods] = cart.Nums
+	}
+
+	// 2．商品的价格自己查询—访问商品服务（跨微服务）
+	goods, err := global.GoodsClient.BatchGetGoods(ctx, &proto.BatchGoodsIdInfo{Id: goodsIDs})
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, err.Error())
+	}
+
+	var (
+		totalPrice float32
+		orderGoods []*model.OrderGoods // 这里是指针类型, 是后面哪里要修改这个变量？？？
+	)
+	for _, good := range goods.Data {
+		totalPrice += good.ShopPrice * float32(goodsAndNums[good.Id])
+
+		orderGoods = append(orderGoods, &model.OrderGoods{
+			Order:      request.Id, // 这里不传？？？
+			Goods:      good.Id,
+			GoodsName:  good.Name,
+			GoodsImage: good.GoodsFrontImage,
+			GoodsPrice: good.ShopPrice,
+			Nums:       goodsAndNums[good.Id], // 怎么从 carts 中拿
+		})
+	}
+
+	// 4．订单的基本信息表—订单的商品信息表
+	orderInfo := model.OrderInfo{
+		User:         request.UserId,
+		OrderMount:   totalPrice,
+		Address:      request.Address,
+		SignerName:   request.Name,
+		SingerMobile: request.Mobile,
+		Post:         request.Post,
+	}
+
+	global.DB.Save(&orderGoods)
+	global.DB.Save(&orderInfo)
+
+	// 3．库存的扣减—访问库存服务（跨微服务）
+	var goodsInfo []*proto.GoodsInvInfo
+	for good, num := range goodsAndNums {
+		goodsInfo = append(goodsInfo, &proto.GoodsInvInfo{
+			GoodsID: good,
+			Num:     num,
+		})
+	}
+	_, err = global.InventoryClient.Sell(ctx, &proto.SellInfo{
+		GoodsInfo: goodsInfo,
+		OrderSn:   "",
+	})
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, err.Error())
+	}
+
+	// 5．从购物车中删除已购买的记录     可不可以调用微服务自己的方法 DeleteCartItem ？？？
+	if result := global.DB.Delete(&carts); result.RowsAffected == 0 {
+		return nil, status.Errorf(codes.Internal, result.Error.Error())
+	}
+
+	return &proto.OrderInfoResponse{
+		UserId:  0,
+		OrderSn: "",
+		PayType: "",
+		Status:  "",
+		Total:   totalPrice,
+		AddTime: orderInfo.CreatedAt.Format("2006-01-02 15:04:05"),
+	}, nil
 }
 
 func (OrderServer) OrderList(ctx context.Context, request *proto.OrderFilterRequest) (*proto.OrderListResponse, error) {
