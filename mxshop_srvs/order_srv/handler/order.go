@@ -270,8 +270,11 @@ func (OrderServer) OrderDetail(ctx context.Context, request *proto.OrderRequest)
 	return &rsp, nil
 }
 
-func (OrderServer) UpdateOrderStatus(ctx context.Context, status *proto.OrderStatus) (*emptypb.Empty, error) {
-	panic("implement me")
+func (OrderServer) UpdateOrderStatus(ctx context.Context, req *proto.OrderStatus) (*emptypb.Empty, error) {
+	if result := global.DB.Model(&model.OrderInfo{}).Where("order_sn = ?", req.OrderSn).Update("status", req.Status); result.RowsAffected == 0 {
+		return nil, status.Errorf(codes.NotFound, "订单不存在: %s", result.Error.Error())
+	}
+	return &emptypb.Empty{}, nil
 }
 
 func GenOrderSn(id int32) string {
