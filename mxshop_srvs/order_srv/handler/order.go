@@ -2,14 +2,16 @@ package handler
 
 import (
 	"context"
-
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
+	"fmt"
+	"math/rand"
+	"time"
 
 	"mxshop-srvs/order_srv/global"
 	"mxshop-srvs/order_srv/model"
 	"mxshop-srvs/order_srv/proto"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
@@ -127,14 +129,14 @@ func (OrderServer) CreateOrder(ctx context.Context, request *proto.OrderRequest)
 
 	var (
 		totalPrice float32
-		orderGoods []*model.OrderGoods // 这里是指针类型, 是后面哪里要修改这个变量？？？
+		orderGoods []*model.OrderGoods // 这里是指针类型, 是后面哪里要修改这个变量？？？  good.Order = orderInfo.ID; orderInfo 写入数据库后生成的 orderInfo.ID(主键) 要赋值给orderGoods变量
 		goodsInfo  []*proto.GoodsInvInfo
 	)
 	for _, good := range goods.Data {
 		totalPrice += good.ShopPrice * float32(goodsAndNums[good.Id])
 
 		orderGoods = append(orderGoods, &model.OrderGoods{
-			Order:      request.Id, // 这里不传？？？
+			//Order:      request.Id, // 这里不传？？？  OrderInfo.ID 是主键，创建数据的时候自动生成的
 			Goods:      good.Id,
 			GoodsName:  good.Name,
 			GoodsImage: good.GoodsFrontImage,
@@ -151,6 +153,7 @@ func (OrderServer) CreateOrder(ctx context.Context, request *proto.OrderRequest)
 	// 4．订单的基本信息表—订单的商品信息表
 	orderInfo := model.OrderInfo{
 		User:         request.UserId,
+		OrderSn:      GenOrderSn(request.UserId),
 		OrderMount:   totalPrice,
 		Address:      request.Address,
 		SignerName:   request.Name,
@@ -158,8 +161,19 @@ func (OrderServer) CreateOrder(ctx context.Context, request *proto.OrderRequest)
 		Post:         request.Post,
 	}
 
-	global.DB.Save(&orderGoods)
-	global.DB.Save(&orderInfo)
+	tx := global.DB.Begin()
+	if result := tx.Save(&orderInfo); result.RowsAffected == 0 {
+		tx.Rollback()
+		return nil, status.Errorf(codes.Internal, "保存订单信息失败: %s", result.Error.Error())
+	}
+
+	for _, good := range orderGoods {
+		good.Order = orderInfo.ID
+	}
+	if result := tx.CreateInBatches(&orderGoods, 100); result.RowsAffected == 0 {
+		tx.Rollback()
+		return nil, status.Errorf(codes.Internal, "保存订单商品信息失败: %s", result.Error.Error())
+	}
 
 	// 3．库存的扣减—访问库存服务（跨微服务）
 	_, err = global.InventoryClient.Sell(ctx, &proto.SellInfo{
@@ -170,17 +184,17 @@ func (OrderServer) CreateOrder(ctx context.Context, request *proto.OrderRequest)
 	}
 
 	// 5．从购物车中删除已购买的记录     可不可以调用微服务自己的方法 DeleteCartItem ？？？
-	if result := global.DB.Delete(&carts); result.RowsAffected == 0 {
-		return nil, status.Errorf(codes.Internal, result.Error.Error())
+	if result := tx.Where(&model.ShoppingCart{User: request.UserId, Checked: true}).Delete(&model.ShoppingCart{}); result.RowsAffected == 0 {
+		tx.Rollback()
+		return nil, status.Errorf(codes.Internal, "创建订单失败: %s", result.Error.Error())
 	}
 
+	tx.Commit()
+
 	return &proto.OrderInfoResponse{
-		UserId:  0,
-		OrderSn: "",
-		PayType: "",
-		Status:  "",
+		Id:      orderInfo.ID,
+		OrderSn: orderInfo.OrderSn,
 		Total:   totalPrice,
-		AddTime: orderInfo.CreatedAt.Format("2006-01-02 15:04:05"),
 	}, nil
 }
 
@@ -258,4 +272,13 @@ func (OrderServer) OrderDetail(ctx context.Context, request *proto.OrderRequest)
 
 func (OrderServer) UpdateOrderStatus(ctx context.Context, status *proto.OrderStatus) (*emptypb.Empty, error) {
 	panic("implement me")
+}
+
+func GenOrderSn(id int32) string {
+	rand.Seed(time.Now().UnixNano())
+	now := time.Now()
+	return fmt.Sprintf("%d%d%d%d%d%d%d%d",
+		now.Year(), now.Month(), now.Day(), now.Hour(), now.Minute(), now.Nanosecond(),
+		id, rand.Intn(90)+10,
+	)
 }
