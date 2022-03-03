@@ -128,6 +128,7 @@ func (OrderServer) CreateOrder(ctx context.Context, request *proto.OrderRequest)
 	var (
 		totalPrice float32
 		orderGoods []*model.OrderGoods // 这里是指针类型, 是后面哪里要修改这个变量？？？
+		goodsInfo  []*proto.GoodsInvInfo
 	)
 	for _, good := range goods.Data {
 		totalPrice += good.ShopPrice * float32(goodsAndNums[good.Id])
@@ -139,6 +140,11 @@ func (OrderServer) CreateOrder(ctx context.Context, request *proto.OrderRequest)
 			GoodsImage: good.GoodsFrontImage,
 			GoodsPrice: good.ShopPrice,
 			Nums:       goodsAndNums[good.Id], // 怎么从 carts 中拿
+		})
+
+		goodsInfo = append(goodsInfo, &proto.GoodsInvInfo{
+			GoodsID: good.Id,
+			Num:     goodsAndNums[good.Id],
 		})
 	}
 
@@ -156,16 +162,8 @@ func (OrderServer) CreateOrder(ctx context.Context, request *proto.OrderRequest)
 	global.DB.Save(&orderInfo)
 
 	// 3．库存的扣减—访问库存服务（跨微服务）
-	var goodsInfo []*proto.GoodsInvInfo
-	for good, num := range goodsAndNums {
-		goodsInfo = append(goodsInfo, &proto.GoodsInvInfo{
-			GoodsID: good,
-			Num:     num,
-		})
-	}
 	_, err = global.InventoryClient.Sell(ctx, &proto.SellInfo{
 		GoodsInfo: goodsInfo,
-		OrderSn:   "",
 	})
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, err.Error())
