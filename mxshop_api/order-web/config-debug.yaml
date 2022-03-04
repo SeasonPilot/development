@@ -1,0 +1,5 @@
+host: 172.19.30.30
+port: 8848
+namespace_id: "3befde95-ee3a-4bad-8564-d85911ad2b33"
+data_id: "order-web.yaml"
+group: "dev"
