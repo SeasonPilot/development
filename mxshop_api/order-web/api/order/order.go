@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"mxshop-api/order-web/api"
+	"mxshop-api/order-web/forms"
 	"mxshop-api/order-web/global"
 	"mxshop-api/order-web/models"
 	"mxshop-api/order-web/proto"
@@ -69,7 +70,30 @@ func List(c *gin.Context) {
 }
 
 func New(c *gin.Context) {
+	orderForm := forms.CreateOrderForm{}
+	err := c.ShouldBind(&orderForm)
+	if err != nil {
+		api.HandleValidatorError(c, err)
+		return
+	}
 
+	userId, _ := c.Get("userId")
+	rsp, err := global.OrderClient.CreateOrder(c, &proto.OrderRequest{
+		UserId:  int32(userId.(uint)),
+		Address: orderForm.Addr,
+		Name:    orderForm.Name,
+		Mobile:  orderForm.Mobile,
+		Post:    orderForm.Post,
+	})
+	if err != nil {
+		zap.S().Errorw("新建订单失败")
+		api.RpcErrToHttpErr(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"id": rsp.Id,
+	})
 }
 
 func Details(c *gin.Context) {

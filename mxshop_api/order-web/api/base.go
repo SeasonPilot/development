@@ -45,7 +45,8 @@ func RpcErrToHttpErr(c *gin.Context, err error) {
 				})
 			case codes.InvalidArgument:
 				c.JSON(http.StatusBadRequest, gin.H{
-					"msg": "参数错误",
+					"msg":       "参数错误",
+					"rpcErrMsg": grpcStatus.Message(),
 				})
 			case codes.Unavailable:
 				c.JSON(http.StatusServiceUnavailable, gin.H{
