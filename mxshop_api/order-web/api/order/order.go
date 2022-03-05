@@ -73,11 +73,62 @@ func New(c *gin.Context) {
 }
 
 func Details(c *gin.Context) {
+	// c.Param("id") 入参要与 router 中 /:id 一致
+	orderId := c.Param("id")
+	orderIdInt, err := strconv.Atoi(orderId)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"msg": "订单 ID 参数错误",
+		})
+		return
+	}
 
-}
-func Delete(c *gin.Context) {
+	userId, _ := c.Get("userId")
+	claims, _ := c.Get("claims")
 
-}
-func Update(c *gin.Context) {
+	customClaims, ok := claims.(*models.CustomClaims)
+	if !ok {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
 
+	req := &proto.OrderRequest{}
+	if customClaims.AuthorityID == 1 {
+		req.UserId = int32(userId.(uint))
+	}
+	req.Id = int32(orderIdInt)
+
+	rsp, err := global.OrderClient.OrderDetail(c, req)
+	if err != nil {
+		zap.S().Errorw("获取订单详情失败")
+		api.RpcErrToHttpErr(c, err)
+		return
+	}
+
+	goods := make([]interface{}, 0)
+	for _, item := range rsp.Goods {
+		tmpMap := map[string]interface{}{
+			"id":    item.GoodsId,
+			"name":  item.GoodsName,
+			"image": item.GoodsImage,
+			"price": item.GoodsPrice,
+			"nums":  item.Nums,
+		}
+
+		goods = append(goods, tmpMap)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"id":       rsp.OrderInfo.Id,
+		"status":   rsp.OrderInfo.Status,
+		"user":     rsp.OrderInfo.UserId,
+		"post":     rsp.OrderInfo.Post,
+		"total":    rsp.OrderInfo.Total,
+		"address":  rsp.OrderInfo.Address,
+		"name":     rsp.OrderInfo.Name,
+		"mobile":   rsp.OrderInfo.Mobile,
+		"pay_type": rsp.OrderInfo.PayType,
+		"order_sn": rsp.OrderInfo.OrderSn,
+		"goods":    goods,
+	})
 }

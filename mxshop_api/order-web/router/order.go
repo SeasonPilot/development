@@ -13,7 +13,5 @@ func InitOrderRouter(r *gin.RouterGroup) {
 		group.GET("", order.List)
 		group.POST("", order.New)
 		group.GET("/:id", order.Details)
-		group.DELETE("/:id", order.Delete)
-		group.PATCH("/:id", order.Update)
 	}
 }
