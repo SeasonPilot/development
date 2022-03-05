@@ -72,7 +72,7 @@ func (OrderServer) UpdateCartItem(ctx context.Context, request *proto.CartItemRe
 	//更新购物车记录，更新数量和选中状态
 	var cart model.ShoppingCart
 
-	if result := global.DB.First(&cart, request.Id); result.RowsAffected == 0 {
+	if result := global.DB.Where("goods = ? AND user = ?", request.GoodsId, request.UserId).First(&cart); result.RowsAffected == 0 {
 		return nil, status.Errorf(codes.NotFound, "购物车记录不存在")
 	}
 
@@ -89,7 +89,7 @@ func (OrderServer) UpdateCartItem(ctx context.Context, request *proto.CartItemRe
 
 func (OrderServer) DeleteCartItem(ctx context.Context, request *proto.CartItemRequest) (*emptypb.Empty, error) {
 	// 删除时可以不用先查询，直接删除即可
-	if result := global.DB.Delete(&model.ShoppingCart{}, request.Id); result.RowsAffected == 0 {
+	if result := global.DB.Where("goods = ? AND user = ?", request.GoodsId, request.UserId).Delete(&model.ShoppingCart{}); result.RowsAffected == 0 {
 		return nil, status.Errorf(codes.NotFound, "购物车记录不存在")
 	}
 	return &emptypb.Empty{}, nil

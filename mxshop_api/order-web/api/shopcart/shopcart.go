@@ -3,6 +3,7 @@ package shopcart
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"mxshop-api/order-web/api"
 	"mxshop-api/order-web/forms"
@@ -122,15 +123,63 @@ func New(c *gin.Context) {
 	})
 }
 
-func Details(c *gin.Context) {
-
-}
 func Delete(c *gin.Context) {
+	// c.Param("id") 入参要与 router 中一致
+	goodsId := c.Param("id")
+	goodsIdInt, err := strconv.Atoi(goodsId)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"msg": "商品 ID 参数错误",
+		})
+		return
+	}
 
+	userId, _ := c.Get("userId")
+	_, err = global.OrderClient.DeleteCartItem(c, &proto.CartItemRequest{
+		UserId:  int32(userId.(uint)),
+		GoodsId: int32(goodsIdInt),
+	})
+	if err != nil {
+		zap.S().Errorw("删除购物车记录失败")
+		api.RpcErrToHttpErr(c, err)
+		return
+	}
+
+	c.Status(http.StatusOK)
 }
 func Update(c *gin.Context) {
+	goodsId := c.Param("id")
+	goodsIdInt, err := strconv.Atoi(goodsId)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"msg": "商品 ID 参数错误",
+		})
+		return
+	}
 
-}
-func Status(c *gin.Context) {
+	var UpdateShopCartItemForm forms.UpdateShopCartItemForm
+	err = c.ShouldBind(&UpdateShopCartItemForm)
+	if err != nil {
+		api.HandleValidatorError(c, err)
+		return
+	}
 
+	userId, _ := c.Get("userId")
+	updateCartItemReq := &proto.CartItemRequest{
+		UserId:  int32(userId.(uint)),
+		GoodsId: int32(goodsIdInt),
+		Nums:    UpdateShopCartItemForm.Num,
+	}
+	// 前端不传 checked 参数， 后端就会传默认值
+	if UpdateShopCartItemForm.Checked != nil {
+		updateCartItemReq.Checked = *UpdateShopCartItemForm.Checked
+	}
+	_, err = global.OrderClient.UpdateCartItem(c, updateCartItemReq)
+	if err != nil {
+		zap.S().Errorw("更新购物车记录失败")
+		api.RpcErrToHttpErr(c, err)
+		return
+	}
+
+	c.Status(http.StatusOK)
 }
