@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"mxshop-api/order-web/api"
+	"mxshop-api/order-web/forms"
 	"mxshop-api/order-web/global"
 	"mxshop-api/order-web/proto"
 
@@ -74,7 +75,51 @@ func List(c *gin.Context) {
 }
 
 func New(c *gin.Context) {
+	var itemForm forms.ShopCartItemForm
+	err := c.ShouldBind(&itemForm)
+	if err != nil {
+		api.HandleValidatorError(c, err)
+		return
+	}
 
+	// 检查商品是否存在
+	_, err = global.GoodsClient.GetGoodsDetail(c, &proto.GoodInfoRequest{Id: itemForm.GoodsId})
+	if err != nil {
+		zap.S().Errorw("[List] 查询【商品信息】失败")
+		api.RpcErrToHttpErr(c, err)
+		return
+	}
+
+	// 校验库存是否足够
+	invDetail, err := global.InvClient.InvDetail(c, &proto.GoodsInvInfo{GoodsID: itemForm.GoodsId})
+	if err != nil {
+		zap.S().Errorw("[List] 查询【库存信息】失败")
+		api.RpcErrToHttpErr(c, err)
+		return
+	}
+	if invDetail.Num < itemForm.Num {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"msg": fmt.Sprintf("库存不足，仅剩 %d 件", invDetail.Num),
+		})
+		return
+	}
+
+	// userId 从 context 中拿，不是让前端传入
+	userId, _ := c.Get("userId")
+	item, err := global.OrderClient.CreateCartItem(c, &proto.CartItemRequest{
+		UserId:  int32(userId.(uint)),
+		GoodsId: itemForm.GoodsId,
+		Nums:    itemForm.Num,
+	})
+	if err != nil {
+		zap.S().Errorw("添加到购物车失败")
+		api.RpcErrToHttpErr(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"id": item.Id,
+	})
 }
 
 func Details(c *gin.Context) {
