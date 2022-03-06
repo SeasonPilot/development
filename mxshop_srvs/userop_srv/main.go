@@ -9,7 +9,6 @@ import (
 	"syscall"
 
 	"mxshop-srvs/userop_srv/global"
-	"mxshop-srvs/userop_srv/handler"
 	"mxshop-srvs/userop_srv/initialization"
 	"mxshop-srvs/userop_srv/proto"
 	"mxshop-srvs/userop_srv/utils/registry/consul"
@@ -38,7 +37,9 @@ func main() {
 
 	// 注册服务
 	g := grpc.NewServer()
-	proto.RegisterOrderServer(g, &handler.OrderServer{})
+	proto.RegisterAddressServer(g, &proto.UnimplementedAddressServer{})
+	proto.RegisterMessageServer(g, &proto.UnimplementedMessageServer{})
+	proto.RegisterUserFavServer(g, &proto.UnimplementedUserFavServer{})
 
 	listen, err := net.Listen("tcp", fmt.Sprintf("%s:%d", *ip, *port))
 	if err != nil {
