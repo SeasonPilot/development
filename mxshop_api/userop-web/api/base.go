@@ -29,8 +29,8 @@ func removeTopStruct(fields map[string]string) map[string]string {
 	return resp
 }
 
-// RpcErrToHttpErr 将 grpc 的 code 转换成 http 的状态码
-func RpcErrToHttpErr(c *gin.Context, err error) {
+// HandleGrpcErrorToHttp 将 grpc 的 code 转换成 http 的状态码
+func HandleGrpcErrorToHttp(err error, c *gin.Context) {
 	if err != nil {
 		if grpcStatus, ok := status.FromError(err); ok {
 			zap.S().Errorf("rpcErrMsg: %s", grpcStatus.Message())

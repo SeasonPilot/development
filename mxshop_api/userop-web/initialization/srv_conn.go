@@ -27,29 +27,18 @@ func InitSrvConn() {
 
 	global.GoodsClient = proto.NewGoodsClient(goodsConn)
 
-	// 库存服务
-	invConn, err := grpc.Dial(
-		fmt.Sprintf("consul://%s:%d/%s?wait=14s", cfg.Host, cfg.Port, global.SrvConfig.InvInfo.Name),
+	// 用户操作服务
+	userOpConn, err := grpc.Dial(
+		fmt.Sprintf("consul://%s:%d/%s?wait=14s", cfg.Host, cfg.Port, global.SrvConfig.UserOpSrvInfo.Name),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithDefaultServiceConfig(`{"loadBalancingPolicy": "round_robin"}`),
 	)
 
 	if err != nil {
-		zap.S().Fatal("[InitSrvConn] 连接 【库存服务失败】")
+		zap.S().Fatal("[InitSrvConn] 连接 【用户操作服务失败】")
 	}
 
-	global.InvClient = proto.NewInventoryClient(invConn)
-
-	//  订单服务
-	orderConn, err := grpc.Dial(
-		fmt.Sprintf("consul://%s:%d/%s?wait=14s", cfg.Host, cfg.Port, global.SrvConfig.OrderInfo.Name),
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithDefaultServiceConfig(`{"loadBalancingPolicy": "round_robin"}`),
-	)
-
-	if err != nil {
-		zap.S().Fatal("[InitSrvConn] 连接 【订单服务失败】")
-	}
-
-	global.OrderClient = proto.NewOrderClient(orderConn)
+	global.UserFavClient = proto.NewUserFavClient(userOpConn)
+	global.MessageClient = proto.NewMessageClient(userOpConn)
+	global.AddressClient = proto.NewAddressClient(userOpConn)
 }

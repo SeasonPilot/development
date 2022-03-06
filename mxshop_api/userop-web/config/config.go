@@ -14,15 +14,14 @@ type ConsulConfig struct {
 }
 
 type ServerConfig struct {
-	Name       string         `mapstructure:"name"`
-	Address    string         `mapstructure:"address"`
-	Port       int            `structure:"port"`
-	Tags       []string       `mapstructure:"tags"`
-	GoodsInfo  GoodsSrvConfig `mapstructure:"goods_info"`
-	JWTInfo    JWTConfig      `mapstructure:"jwt"`
-	ConsulInfo ConsulConfig   `mapstructure:"consul"`
-	OrderInfo  GoodsSrvConfig `mapstructure:"order_info"`
-	InvInfo    GoodsSrvConfig `mapstructure:"inv_info"`
+	Name          string         `mapstructure:"name"`
+	Address       string         `mapstructure:"address"`
+	Port          int            `structure:"port"`
+	Tags          []string       `mapstructure:"tags"`
+	GoodsInfo     GoodsSrvConfig `mapstructure:"goods_info"`
+	JWTInfo       JWTConfig      `mapstructure:"jwt"`
+	ConsulInfo    ConsulConfig   `mapstructure:"consul"`
+	UserOpSrvInfo GoodsSrvConfig `mapstructure:"userop_info"`
 }
 
 type NacosConfig struct {

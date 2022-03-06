@@ -13,4 +13,8 @@ var (
 	Translator ut.Translator
 
 	GoodsClient proto.GoodsClient
+
+	MessageClient proto.MessageClient
+	AddressClient proto.AddressClient
+	UserFavClient proto.UserFavClient
 )
