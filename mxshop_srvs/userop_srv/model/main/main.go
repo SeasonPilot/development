@@ -31,7 +31,7 @@ func main() {
 		panic(err)
 	}
 
-	err = db.AutoMigrate(&model.ShoppingCart{}, &model.OrderInfo{}, &model.OrderGoods{})
+	err = db.AutoMigrate(&model.LeavingMessages{}, &model.UserFav{}, model.Address{})
 	if err != nil {
 		panic(err)
 	}
