@@ -11,6 +11,7 @@ import (
 	"mxshop-api/order-web/proto"
 
 	"github.com/gin-gonic/gin"
+	"github.com/smartwalle/alipay/v3"
 	"go.uber.org/zap"
 )
 
@@ -91,8 +92,45 @@ func New(c *gin.Context) {
 		return
 	}
 
+	// 生成支付宝的支付url
+	client, err := alipay.New(global.SrvConfig.AlipayInfo.AppID, global.SrvConfig.AlipayInfo.PrivateKey, false)
+	if err != nil {
+		zap.S().Errorw("实例化支付宝失败")
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"msg": err.Error(),
+		})
+		return
+	}
+
+	err = client.LoadAliPayPublicKey(global.SrvConfig.AlipayInfo.AliPublicKey)
+	if err != nil {
+		zap.S().Errorw("加载支付宝的公钥失败")
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"msg": err.Error(),
+		})
+		return
+	}
+
+	var p = alipay.TradePagePay{}
+	p.NotifyURL = global.SrvConfig.AlipayInfo.NotifyURL
+	p.ReturnURL = global.SrvConfig.AlipayInfo.ReturnURL
+	p.Subject = "标题-" + rsp.OrderSn
+	p.OutTradeNo = rsp.OrderSn
+	p.TotalAmount = strconv.FormatFloat(float64(rsp.Total), 'f', 2, 64)
+	p.ProductCode = "FAST_INSTANT_TRADE_PAY"
+
+	payURL, err := client.TradePagePay(p)
+	if err != nil {
+		zap.S().Errorw("生成支付url失败")
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"msg": err.Error(),
+		})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"id": rsp.Id,
+		"id":         rsp.Id,
+		"alipay_url": payURL.String(),
 	})
 }
 
@@ -142,17 +180,54 @@ func Details(c *gin.Context) {
 		goods = append(goods, tmpMap)
 	}
 
+	// 生成支付宝的支付url
+	client, err := alipay.New(global.SrvConfig.AlipayInfo.AppID, global.SrvConfig.AlipayInfo.PrivateKey, false)
+	if err != nil {
+		zap.S().Errorw("实例化支付宝失败")
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"msg": err.Error(),
+		})
+		return
+	}
+
+	err = client.LoadAliPayPublicKey(global.SrvConfig.AlipayInfo.AliPublicKey)
+	if err != nil {
+		zap.S().Errorw("加载支付宝的公钥失败")
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"msg": err.Error(),
+		})
+		return
+	}
+
+	var p = alipay.TradePagePay{}
+	p.NotifyURL = global.SrvConfig.AlipayInfo.NotifyURL
+	p.ReturnURL = global.SrvConfig.AlipayInfo.ReturnURL
+	p.Subject = "标题-" + rsp.OrderInfo.OrderSn
+	p.OutTradeNo = rsp.OrderInfo.OrderSn
+	p.TotalAmount = strconv.FormatFloat(float64(rsp.OrderInfo.Total), 'f', 2, 64)
+	p.ProductCode = "FAST_INSTANT_TRADE_PAY"
+
+	payURL, err := client.TradePagePay(p)
+	if err != nil {
+		zap.S().Errorw("生成支付url失败")
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"msg": err.Error(),
+		})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"id":       rsp.OrderInfo.Id,
-		"status":   rsp.OrderInfo.Status,
-		"user":     rsp.OrderInfo.UserId,
-		"post":     rsp.OrderInfo.Post,
-		"total":    rsp.OrderInfo.Total,
-		"address":  rsp.OrderInfo.Address,
-		"name":     rsp.OrderInfo.Name,
-		"mobile":   rsp.OrderInfo.Mobile,
-		"pay_type": rsp.OrderInfo.PayType,
-		"order_sn": rsp.OrderInfo.OrderSn,
-		"goods":    goods,
+		"id":         rsp.OrderInfo.Id,
+		"status":     rsp.OrderInfo.Status,
+		"user":       rsp.OrderInfo.UserId,
+		"post":       rsp.OrderInfo.Post,
+		"total":      rsp.OrderInfo.Total,
+		"address":    rsp.OrderInfo.Address,
+		"name":       rsp.OrderInfo.Name,
+		"mobile":     rsp.OrderInfo.Mobile,
+		"pay_type":   rsp.OrderInfo.PayType,
+		"order_sn":   rsp.OrderInfo.OrderSn,
+		"goods":      goods,
+		"alipay_url": payURL.String(),
 	})
 }

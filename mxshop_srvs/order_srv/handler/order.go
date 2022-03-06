@@ -10,6 +10,7 @@ import (
 	"mxshop-srvs/order_srv/model"
 	"mxshop-srvs/order_srv/proto"
 
+	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -172,6 +173,7 @@ func (OrderServer) CreateOrder(ctx context.Context, request *proto.OrderRequest)
 	}
 	if result := tx.CreateInBatches(&orderGoods, 100); result.RowsAffected == 0 {
 		tx.Rollback()
+		zap.S().Errorf("保存订单商品信息失败: %s", result.Error.Error())
 		return nil, status.Errorf(codes.Internal, "保存订单商品信息失败: %s", result.Error.Error())
 	}
 
@@ -180,7 +182,8 @@ func (OrderServer) CreateOrder(ctx context.Context, request *proto.OrderRequest)
 		GoodsInfo: goodsInfo,
 	})
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, err.Error())
+		zap.S().Errorf("扣减库存失败: %s", err.Error())
+		return nil, status.Errorf(codes.Internal, "扣减库存失败: %s", err.Error())
 	}
 
 	// 5．从购物车中删除已购买的记录     可不可以调用微服务自己的方法 DeleteCartItem ？？？

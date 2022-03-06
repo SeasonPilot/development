@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -32,6 +33,7 @@ func removeTopStruct(fields map[string]string) map[string]string {
 func RpcErrToHttpErr(c *gin.Context, err error) {
 	if err != nil {
 		if grpcStatus, ok := status.FromError(err); ok {
+			zap.S().Errorf("rpcErrMsg: %s", grpcStatus.Message())
 			switch grpcStatus.Code() {
 			case codes.NotFound:
 				c.JSON(http.StatusNotFound, gin.H{
@@ -45,8 +47,7 @@ func RpcErrToHttpErr(c *gin.Context, err error) {
 				})
 			case codes.InvalidArgument:
 				c.JSON(http.StatusBadRequest, gin.H{
-					"msg":       "参数错误",
-					"rpcErrMsg": grpcStatus.Message(),
+					"msg": "参数错误",
 				})
 			case codes.Unavailable:
 				c.JSON(http.StatusServiceUnavailable, gin.H{
