@@ -19,6 +19,8 @@ func (*UserOpServer) GetAddressList(ctx context.Context, req *proto.AddressReque
 
 	if result := global.DB.Where(&model.Address{User: req.UserId}).Find(&addresses); result.RowsAffected != 0 {
 		rsp.Total = int32(result.RowsAffected)
+	} else if result.Error != nil {
+		return nil, status.Errorf(codes.Internal, "获取地址错误: %s", result.Error)
 	}
 
 	for _, address := range addresses {
@@ -49,7 +51,9 @@ func (*UserOpServer) CreateAddress(ctx context.Context, req *proto.AddressReques
 	address.SignerName = req.SignerName
 	address.SignerMobile = req.SignerMobile
 
-	global.DB.Save(&address)
+	if result := global.DB.Save(&address); result.Error != nil {
+		return nil, status.Errorf(codes.Internal, "创建地址错误: %s", result.Error)
+	}
 
 	return &proto.AddressResponse{Id: address.ID}, nil
 }
