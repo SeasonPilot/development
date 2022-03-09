@@ -43,4 +43,19 @@ func main() {
 		}
 		fmt.Println(account)
 	}
+
+	// Index an account (using JSON serialization)
+	account := Account{
+		AccountNumber: 1234324567,
+		FirstName:     "hahahahbobby",
+	}
+	put1, err := client.Index().
+		Index("myuser").
+		BodyJson(account).
+		Do(context.Background())
+	if err != nil {
+		// Handle error
+		panic(err)
+	}
+	fmt.Printf("Indexed account %s to index %s, type %s\n", put1.Id, put1.Index, put1.Type)
 }
