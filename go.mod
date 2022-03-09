@@ -22,6 +22,7 @@ require (
 	github.com/hashicorp/consul/api v1.12.0
 	github.com/mbobakov/grpc-consul-resolver v1.4.4
 	github.com/nacos-group/nacos-sdk-go v1.1.0
+	github.com/olivere/elastic/v7 v7.0.31
 	github.com/satori/go.uuid v1.2.0 // indirect
 	github.com/smartwalle/alipay/v3 v3.1.7
 	github.com/spf13/viper v1.10.1
