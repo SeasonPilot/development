@@ -15,6 +15,21 @@ type Account struct {
 	FirstName     string `json:"firstname"`
 }
 
+const goodsMapping = `
+{
+    "mappings": {
+        "properties": {
+            "name": {
+                "type": "text",
+                "analyzer": "ik_max_word"
+            },
+            "id": {
+                "type": "integer"
+            }
+        }
+    }
+}`
+
 func main() {
 	url := "http://172.19.30.30:9200/"
 	l := log.New(os.Stdout, "mx", log.LstdFlags)
@@ -24,6 +39,17 @@ func main() {
 	client, err := elastic.NewClient(elastic.SetURL(url), elastic.SetSniff(false), elastic.SetTraceLog(l))
 	if err != nil {
 		panic(err)
+	}
+
+	// Create a new index.
+	createIndex, err := client.CreateIndex("mygoods").BodyString(goodsMapping).Do(context.Background())
+	if err != nil {
+		// Handle error
+		panic(err)
+	}
+	if !createIndex.Acknowledged {
+		// Not acknowledged
+		fmt.Println(err)
 	}
 
 	// match 查询
