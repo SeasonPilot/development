@@ -2,12 +2,18 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
 
 	"github.com/olivere/elastic/v7"
 )
+
+type Account struct {
+	AccountNumber int32  `json:"account_number"`
+	FirstName     string `json:"firstname"`
+}
 
 func main() {
 	url := "http://172.19.30.30:9200/"
@@ -30,10 +36,11 @@ func main() {
 	fmt.Println(result.Hits.TotalHits.Value)
 
 	for _, hit := range result.Hits.Hits {
-		json, err := hit.Source.MarshalJSON()
+		var account Account
+		err = json.Unmarshal(hit.Source, &account)
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println(string(json))
+		fmt.Println(account)
 	}
 }
