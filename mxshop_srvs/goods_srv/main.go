@@ -25,6 +25,7 @@ func main() {
 	initialization.InitLogger()
 	initialization.InitConfig()
 	initialization.InitDB()
+	initialization.InitES()
 
 	//freePort, err := utils.GetFreePort()
 	//if err != nil {
