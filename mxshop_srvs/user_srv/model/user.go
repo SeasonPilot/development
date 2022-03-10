@@ -7,11 +7,11 @@ import (
 )
 
 type BaseModel struct {
-	ID       int        `gorm:"primarykey"`
-	CreateAt *time.Time `gorm:"column:add_time"`
-	UpdateAt *time.Time `gorm:"column:update_time"`
-	DeleteAt gorm.DeletedAt
-	isDelete bool
+	ID        int        `gorm:"primarykey"`
+	CreateAt  *time.Time `gorm:"column:add_time"`
+	UpdateAt  *time.Time `gorm:"column:update_time"`
+	DeleteAt  gorm.DeletedAt
+	IsDeleted bool
 }
 
 type User struct {
