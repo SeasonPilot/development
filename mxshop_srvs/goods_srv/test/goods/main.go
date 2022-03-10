@@ -25,7 +25,8 @@ func TestGetGoodsList() {
 	fmt.Println(rsp.Total)
 	for _, good := range rsp.Data {
 		fmt.Println(good.Name, good.ShopPrice)
-		fmt.Println(good.Category.Id)
+		//fmt.Println(good.Category.Id)
+		fmt.Println(good.Brand.Name)
 	}
 }
 
@@ -55,7 +56,7 @@ func TestGetGoodsDetail() {
 
 func Init() {
 	var err error
-	conn, err = grpc.Dial(":50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err = grpc.Dial(":50052", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		panic(err)
 	}
@@ -66,9 +67,9 @@ func Init() {
 func main() {
 	Init()
 	//TestCreateUser()
-	//TestGetGoodsList()
+	TestGetGoodsList()
 	//TestBatchGetGoods()
-	TestGetGoodsDetail()
+	//TestGetGoodsDetail()
 
 	conn.Close()
 }
