@@ -38,7 +38,7 @@ type Goods struct {
 	// 外键
 	CategoryID int32 `gorm:"type:int;not null"`
 	Category   Category
-	BrandsID   int32 `gorm:"type:int;not null"`
+	BrandsID   int32 `gorm:"column:brand_id;type:int;not null"`
 	Brands     Brands
 
 	OnSale   bool `gorm:"not null;default:false;"`
