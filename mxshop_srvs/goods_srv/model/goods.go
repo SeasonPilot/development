@@ -1,5 +1,14 @@
 package model
 
+import (
+	"context"
+	"strconv"
+
+	"mxshop-srvs/goods_srv/global"
+
+	"gorm.io/gorm"
+)
+
 type Category struct {
 	BaseModel
 	Name             string      `gorm:"type:varchar(50);not null;" json:"name,omitempty"`
@@ -61,4 +70,29 @@ type Goods struct {
 	Images          GormList `gorm:"type:varchar(1000);not null"`
 	DescImages      GormList `gorm:"type:varchar(1000);not null"`
 	GoodsFrontImage string   `gorm:"type:varchar(200);not null"`
+}
+
+func (g *Goods) AfterCreate(*gorm.DB) error {
+	esGoods := EsGoods{
+		ID:          g.ID,
+		CategoryID:  g.CategoryID,
+		BrandsID:    g.BrandsID,
+		OnSale:      g.OnSale,
+		ShipFree:    g.ShipFree,
+		IsNew:       g.IsNew,
+		IsHot:       g.IsHot,
+		Name:        g.Name,
+		ClickNum:    g.ClickNum,
+		SoldNum:     g.SoldNum,
+		FavNum:      g.FavNum,
+		MarketPrice: g.MarketPrice,
+		GoodsBrief:  g.GoodsBrief,
+		ShopPrice:   g.ShopPrice,
+	}
+
+	_, err := global.EsClient.Index().Index(esGoods.GetIndexName()).BodyJson(esGoods).Id(strconv.Itoa(int(g.ID))).Do(context.Background())
+	if err != nil {
+		return err
+	}
+	return nil
 }

@@ -210,10 +210,13 @@ func (s *GoodsServer) CreateGoods(c context.Context, req *proto.CreateGoodsInfo)
 		GoodsFrontImage: req.GoodsFrontImage,
 	}
 
-	result := global.DB.Save(&goods)
+	tx := global.DB.Begin()
+	result := tx.Save(&goods)
 	if result.Error != nil {
+		tx.Rollback()
 		return nil, result.Error
 	}
+	tx.Commit()
 
 	return &proto.GoodsInfoResponse{
 		Id: goods.ID,
