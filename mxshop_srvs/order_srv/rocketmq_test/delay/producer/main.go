@@ -19,10 +19,12 @@ func main() {
 		panic(err)
 	}
 
-	resp, err := p.SendSync(context.Background(), &primitive.Message{
+	msg := &primitive.Message{
 		Topic: "imooc1",
-		Body:  []byte("hello word"),
-	})
+		Body:  []byte("delay message"),
+	}
+	msg.WithDelayTimeLevel(3)
+	resp, err := p.SendSync(context.Background(), msg)
 	if err != nil {
 		fmt.Printf("SendSync err: %s", err)
 		return
