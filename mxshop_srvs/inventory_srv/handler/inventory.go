@@ -8,6 +8,8 @@ import (
 	"mxshop-srvs/inventory_srv/model"
 	"mxshop-srvs/inventory_srv/proto"
 
+	"github.com/apache/rocketmq-client-go/v2/consumer"
+	"github.com/apache/rocketmq-client-go/v2/primitive"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -108,4 +110,11 @@ func (InventoryServer) Reback(ctx context.Context, info *proto.SellInfo) (*empty
 
 	tx.Commit()
 	return &emptypb.Empty{}, nil
+}
+
+func AutoReback(ctx context.Context, ext ...*primitive.MessageExt) (consumer.ConsumeResult, error) {
+	for _, msg := range ext {
+		fmt.Printf("获得的消息: %v", msg)
+	}
+	return consumer.ConsumeSuccess, nil
 }

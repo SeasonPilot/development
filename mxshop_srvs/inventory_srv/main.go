@@ -14,6 +14,9 @@ import (
 	"mxshop-srvs/inventory_srv/proto"
 	"mxshop-srvs/inventory_srv/utils/registry/consul"
 
+	"github.com/apache/rocketmq-client-go/v2"
+	"github.com/apache/rocketmq-client-go/v2/consumer"
+	"github.com/apache/rocketmq-client-go/v2/primitive"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -71,6 +74,18 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	c, _ := rocketmq.NewPushConsumer(
+		consumer.WithNameServer(primitive.NamesrvAddr{"172.19.30.30:9876"}),
+		// 通过 GroupName 可以达到负载均衡的效果
+		consumer.WithGroupName("mxshop-inventory"),
+	)
+
+	if err = c.Subscribe("order_reback", consumer.MessageSelector{}, handler.AutoReback); err != nil {
+		fmt.Println("获得消息失败")
+	}
+
+	_ = c.Start()
 
 	// 优雅退出; deregister 服务
 	quit := make(chan os.Signal)
