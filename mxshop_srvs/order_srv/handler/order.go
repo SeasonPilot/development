@@ -216,9 +216,15 @@ func (o *OrderListener) ExecuteLocalTransaction(msg *primitive.Message) primitiv
 }
 
 func (o *OrderListener) CheckLocalTransaction(msg *primitive.MessageExt) primitive.LocalTransactionState {
-	fmt.Println("rocketmq的消息回查")
-	<-time.After(time.Second * 15)
-	return primitive.CommitMessageState
+	// 反序列化 msg
+	var orderInfo model.OrderInfo
+	_ = json.Unmarshal(msg.Body, &orderInfo)
+
+	//怎么检查之前的逻辑是否完成
+	if result := global.DB.Where(&model.OrderInfo{OrderSn: orderInfo.OrderSn}).First(&orderInfo); result.RowsAffected == 0 {
+		return primitive.CommitMessageState // 并不能说明这里就是库存已经扣减了
+	}
+	return primitive.RollbackMessageState
 }
 
 func (OrderServer) CreateOrder(ctx context.Context, request *proto.OrderRequest) (*proto.OrderInfoResponse, error) {
