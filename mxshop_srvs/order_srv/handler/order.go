@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"time"
@@ -10,6 +11,9 @@ import (
 	"mxshop-srvs/order_srv/model"
 	"mxshop-srvs/order_srv/proto"
 
+	"github.com/apache/rocketmq-client-go/v2"
+	"github.com/apache/rocketmq-client-go/v2/primitive"
+	"github.com/apache/rocketmq-client-go/v2/producer"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -96,15 +100,9 @@ func (OrderServer) DeleteCartItem(ctx context.Context, request *proto.CartItemRe
 	return &emptypb.Empty{}, nil
 }
 
-func (OrderServer) CreateOrder(ctx context.Context, request *proto.OrderRequest) (*proto.OrderInfoResponse, error) {
-	/*
-		1．从购物车中获取到选中的商品
-		2．商品的价格自己查询—访问商品服务（跨微服务）
-		3．库存的扣减—访问库存服务（跨微服务）
-		4．订单的基本信息表—订单的商品信息表
-		5．从购物车中删除已购买的记录
-	*/
+type OrderListener struct{}
 
+func (o *OrderListener) ExecuteLocalTransaction(msg *primitive.Message) primitive.LocalTransactionState {
 	// 1．从购物车中获取到选中的商品
 	var (
 		carts    []model.ShoppingCart
@@ -193,6 +191,60 @@ func (OrderServer) CreateOrder(ctx context.Context, request *proto.OrderRequest)
 	}
 
 	tx.Commit()
+	return primitive.UnknowState
+}
+
+func (o *OrderListener) CheckLocalTransaction(msg *primitive.MessageExt) primitive.LocalTransactionState {
+	fmt.Println("rocketmq的消息回查")
+	<-time.After(time.Second * 15)
+	return primitive.CommitMessageState
+}
+
+func (OrderServer) CreateOrder(ctx context.Context, request *proto.OrderRequest) (*proto.OrderInfoResponse, error) {
+	/*
+		1．从购物车中获取到选中的商品
+		2．商品的价格自己查询—访问商品服务（跨微服务）
+		3．库存的扣减—访问库存服务（跨微服务）
+		4．订单的基本信息表—订单的商品信息表
+		5．从购物车中删除已购买的记录
+	*/
+
+	p, err := rocketmq.NewTransactionProducer(&OrderListener{},
+		producer.WithNameServer(primitive.NamesrvAddr{"172.19.30.30:9876"}))
+	if err != nil {
+		zap.S().Error("生成 TransactionProducer 失败")
+		return nil, status.Error(codes.Internal, "生成 TransactionProducer 失败")
+	}
+
+	if err = p.Start(); err != nil {
+		zap.S().Error("启动 TransactionProducer 失败")
+		return nil, status.Error(codes.Internal, "启动 TransactionProducer 失败")
+	}
+
+	orderInfo := model.OrderInfo{
+		User:         request.UserId,
+		OrderSn:      GenOrderSn(request.UserId),
+		Address:      request.Address,
+		SignerName:   request.Name,
+		SingerMobile: request.Mobile,
+		Post:         request.Post,
+	}
+	jsonStr, err := json.Marshal(orderInfo)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	resp, err := p.SendMessageInTransaction(context.Background(), &primitive.Message{
+		Topic: "order_reback",
+		Body:  jsonStr,
+	})
+	if err != nil {
+		zap.S().Errorf("SendMessageInTransaction err: %s", err)
+		return nil, status.Errorf(codes.Internal, "SendMessageInTransaction err:%s", err.Error())
+	}
+	if resp.State == primitive.CommitMessageState {
+		return nil, status.Errorf(codes.Internal, "订单创建失败")
+	}
 
 	return &proto.OrderInfoResponse{
 		Id:      orderInfo.ID,
