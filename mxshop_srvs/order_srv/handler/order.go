@@ -100,9 +100,20 @@ func (OrderServer) DeleteCartItem(ctx context.Context, request *proto.CartItemRe
 	return &emptypb.Empty{}, nil
 }
 
-type OrderListener struct{}
+type OrderListener struct {
+	Code       codes.Code
+	Detail     string
+	OrderID    int32
+	TotalPrice float32
+
+	Ctx context.Context
+}
 
 func (o *OrderListener) ExecuteLocalTransaction(msg *primitive.Message) primitive.LocalTransactionState {
+	// 反序列化 msg
+	var orderInfo model.OrderInfo
+	_ = json.Unmarshal(msg.Body, &orderInfo)
+
 	// 1．从购物车中获取到选中的商品
 	var (
 		carts    []model.ShoppingCart
@@ -111,8 +122,10 @@ func (o *OrderListener) ExecuteLocalTransaction(msg *primitive.Message) primitiv
 	// map 必现要初始化后才能使用
 	goodsAndNums := make(map[int32]int32)
 
-	if result := global.DB.Where(&model.ShoppingCart{User: request.UserId, Checked: true}).Find(&carts); result.RowsAffected == 0 {
-		return nil, status.Errorf(codes.InvalidArgument, "没有选中结算的商品")
+	if result := global.DB.Where(&model.ShoppingCart{User: orderInfo.User, Checked: true}).Find(&carts); result.RowsAffected == 0 {
+		o.Code = codes.InvalidArgument
+		o.Detail = "没有选中结算的商品"
+		return primitive.RollbackMessageState
 	}
 
 	for _, cart := range carts {
@@ -121,9 +134,11 @@ func (o *OrderListener) ExecuteLocalTransaction(msg *primitive.Message) primitiv
 	}
 
 	// 2．商品的价格自己查询—访问商品服务（跨微服务）
-	goods, err := global.GoodsClient.BatchGetGoods(ctx, &proto.BatchGoodsIdInfo{Id: goodsIDs})
+	goods, err := global.GoodsClient.BatchGetGoods(o.Ctx, &proto.BatchGoodsIdInfo{Id: goodsIDs})
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, err.Error())
+		o.Code = codes.Internal
+		o.Detail = err.Error()
+		return primitive.RollbackMessageState
 	}
 
 	var (
@@ -150,21 +165,17 @@ func (o *OrderListener) ExecuteLocalTransaction(msg *primitive.Message) primitiv
 	}
 
 	// 4．订单的基本信息表—订单的商品信息表
-	orderInfo := model.OrderInfo{
-		User:         request.UserId,
-		OrderSn:      GenOrderSn(request.UserId),
-		OrderMount:   totalPrice,
-		Address:      request.Address,
-		SignerName:   request.Name,
-		SingerMobile: request.Mobile,
-		Post:         request.Post,
-	}
+	orderInfo.OrderMount = totalPrice
+	o.TotalPrice = totalPrice
 
 	tx := global.DB.Begin()
 	if result := tx.Save(&orderInfo); result.RowsAffected == 0 {
 		tx.Rollback()
-		return nil, status.Errorf(codes.Internal, "保存订单信息失败: %s", result.Error.Error())
+		o.Code = codes.Internal
+		o.Detail = fmt.Sprintf("保存订单信息失败: %s", result.Error.Error())
+		return primitive.RollbackMessageState
 	}
+	o.OrderID = orderInfo.ID
 
 	for _, good := range orderGoods {
 		good.Order = orderInfo.ID
@@ -172,26 +183,36 @@ func (o *OrderListener) ExecuteLocalTransaction(msg *primitive.Message) primitiv
 	if result := tx.CreateInBatches(&orderGoods, 100); result.RowsAffected == 0 {
 		tx.Rollback()
 		zap.S().Errorf("保存订单商品信息失败: %s", result.Error.Error())
-		return nil, status.Errorf(codes.Internal, "保存订单商品信息失败: %s", result.Error.Error())
+		o.Code = codes.Internal
+		o.Detail = fmt.Sprintf("保存订单商品信息失败: %s", result.Error.Error())
+		return primitive.RollbackMessageState
 	}
 
 	// 3．库存的扣减—访问库存服务（跨微服务）
-	_, err = global.InventoryClient.Sell(ctx, &proto.SellInfo{
+	_, err = global.InventoryClient.Sell(o.Ctx, &proto.SellInfo{
 		GoodsInfo: goodsInfo,
 	})
 	if err != nil {
-		zap.S().Errorf("扣减库存失败: %s", err.Error())
-		return nil, status.Errorf(codes.Internal, "扣减库存失败: %s", err.Error())
+		sts, _ := status.FromError(err)
+		if sts.Code() == codes.NotFound || sts.Code() == codes.ResourceExhausted {
+			zap.S().Errorf("扣减库存失败: %s", err.Error())
+			o.Code = codes.Internal
+			o.Detail = fmt.Sprintf("扣减库存失败: %s", err.Error())
+			return primitive.RollbackMessageState
+		}
+		zap.S().Errorf("InventoryClient.Sell err : %s", err.Error())
 	}
 
 	// 5．从购物车中删除已购买的记录     可不可以调用微服务自己的方法 DeleteCartItem ？？？
-	if result := tx.Where(&model.ShoppingCart{User: request.UserId, Checked: true}).Delete(&model.ShoppingCart{}); result.RowsAffected == 0 {
+	if result := tx.Where(&model.ShoppingCart{User: orderInfo.User, Checked: true}).Delete(&model.ShoppingCart{}); result.RowsAffected == 0 {
 		tx.Rollback()
-		return nil, status.Errorf(codes.Internal, "创建订单失败: %s", result.Error.Error())
+		o.Code = codes.Internal
+		o.Detail = fmt.Sprintf("创建订单失败: %s", result.Error.Error())
+		return primitive.CommitMessageState
 	}
 
 	tx.Commit()
-	return primitive.UnknowState
+	return primitive.RollbackMessageState
 }
 
 func (o *OrderListener) CheckLocalTransaction(msg *primitive.MessageExt) primitive.LocalTransactionState {
@@ -209,7 +230,8 @@ func (OrderServer) CreateOrder(ctx context.Context, request *proto.OrderRequest)
 		5．从购物车中删除已购买的记录
 	*/
 
-	p, err := rocketmq.NewTransactionProducer(&OrderListener{},
+	orderListener := OrderListener{Ctx: ctx}
+	p, err := rocketmq.NewTransactionProducer(&orderListener,
 		producer.WithNameServer(primitive.NamesrvAddr{"172.19.30.30:9876"}))
 	if err != nil {
 		zap.S().Error("生成 TransactionProducer 失败")
@@ -247,9 +269,9 @@ func (OrderServer) CreateOrder(ctx context.Context, request *proto.OrderRequest)
 	}
 
 	return &proto.OrderInfoResponse{
-		Id:      orderInfo.ID,
+		Id:      orderListener.OrderID,
 		OrderSn: orderInfo.OrderSn,
-		Total:   totalPrice,
+		Total:   orderListener.TotalPrice,
 	}, nil
 }
 
