@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"mxshop-srvs/inventory_srv/global"
@@ -10,9 +11,11 @@ import (
 
 	"github.com/apache/rocketmq-client-go/v2/consumer"
 	"github.com/apache/rocketmq-client-go/v2/primitive"
+	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
+	"gorm.io/gorm"
 )
 
 type InventoryServer struct {
@@ -52,6 +55,8 @@ func (InventoryServer) Sell(ctx context.Context, info *proto.SellInfo) (*emptypb
 	tx := global.DB.Begin()
 	//m.Lock()
 
+	var goodsDetailList model.GoodsDetailList
+
 	for _, good := range info.GoodsInfo {
 		mutex := global.RedSync.NewMutex(fmt.Sprintf("goods_%d", good.GoodsID))
 
@@ -83,6 +88,22 @@ func (InventoryServer) Sell(ctx context.Context, info *proto.SellInfo) (*emptypb
 		if !ok || err != nil {
 			return nil, status.Errorf(codes.Internal, "释放redis分布式锁异常: %s", err.Error())
 		}
+
+		goodsDetailList = append(goodsDetailList, model.GoodsDetail{
+			Goods: good.GoodsID,
+			Num:   good.Num,
+		})
+	}
+
+	// 保存库存销售记录
+	var stockSellDetail = model.StockSellDetail{
+		OrderSN: info.OrderSn,
+		Status:  1,
+		Detail:  goodsDetailList,
+	}
+	if result := tx.Create(&stockSellDetail); result.RowsAffected == 0 {
+		tx.Rollback()
+		return nil, status.Errorf(codes.Internal, "保存库存销售记录失败: %s", result.Error.Error())
 	}
 
 	tx.Commit()
@@ -113,8 +134,46 @@ func (InventoryServer) Reback(ctx context.Context, info *proto.SellInfo) (*empty
 }
 
 func AutoReback(ctx context.Context, ext ...*primitive.MessageExt) (consumer.ConsumeResult, error) {
-	for _, msg := range ext {
-		fmt.Printf("获得的消息: %v", msg)
+	type OrderInfo struct {
+		OrderSN string
 	}
+	var orderInfo OrderInfo
+
+	tx := global.DB.Begin()
+
+	for _, msg := range ext {
+		if err := json.Unmarshal(msg.Body, &orderInfo); err != nil {
+			zap.S().Errorf("解析json失败： %v\n", msg.Body)
+			return consumer.ConsumeSuccess, nil
+		}
+
+		var stockSellDetail model.StockSellDetail
+
+		// 查询扣减记录是否存在
+		if result := tx.Where(model.StockSellDetail{
+			OrderSN: orderInfo.OrderSN,
+			Status:  1,
+		}).First(&stockSellDetail); result.RowsAffected == 0 {
+			return consumer.ConsumeSuccess, nil
+		}
+
+		// 如果查询到那么逐个归还库存
+		for _, detail := range stockSellDetail.Detail {
+			var inv model.Inventory
+
+			if result := tx.Where(&inv).Update("stocks", gorm.Expr("stocks + ?", detail.Num)); result.RowsAffected == 0 {
+				tx.Rollback()
+				return consumer.ConsumeRetryLater, nil
+			}
+		}
+	}
+
+	// 更新库存销售记录扣减状态
+	if result := tx.Where(model.StockSellDetail{OrderSN: orderInfo.OrderSN}).Update("status", 2); result.RowsAffected == 0 {
+		tx.Rollback()
+		return consumer.ConsumeRetryLater, nil
+	}
+
+	tx.Commit()
 	return consumer.ConsumeSuccess, nil
 }
