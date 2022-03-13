@@ -101,7 +101,7 @@ func (OrderServer) DeleteCartItem(ctx context.Context, request *proto.CartItemRe
 }
 
 type OrderListener struct {
-	Code       codes.Code
+	Code       codes.Code // 将 ExecuteLocalTransaction 的错误返回给 CreateOrder
 	Detail     string
 	OrderID    int32
 	TotalPrice float32
@@ -212,6 +212,7 @@ func (o *OrderListener) ExecuteLocalTransaction(msg *primitive.Message) primitiv
 	}
 
 	tx.Commit()
+	o.Code = codes.OK
 	return primitive.RollbackMessageState
 }
 
@@ -262,7 +263,7 @@ func (OrderServer) CreateOrder(ctx context.Context, request *proto.OrderRequest)
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	resp, err := p.SendMessageInTransaction(context.Background(), &primitive.Message{
+	_, err = p.SendMessageInTransaction(context.Background(), &primitive.Message{
 		Topic: "order_reback",
 		Body:  jsonStr,
 	})
@@ -270,8 +271,9 @@ func (OrderServer) CreateOrder(ctx context.Context, request *proto.OrderRequest)
 		zap.S().Errorf("SendMessageInTransaction err: %s", err)
 		return nil, status.Errorf(codes.Internal, "SendMessageInTransaction err:%s", err.Error())
 	}
-	if resp.State == primitive.CommitMessageState {
-		return nil, status.Errorf(codes.Internal, "订单创建失败")
+	// 通过 ExecuteLocalTransaction 里面的 grpc code 判断订单是否创建成功
+	if orderListener.Code != codes.OK {
+		return nil, status.Errorf(orderListener.Code, "订单创建失败: %s", orderListener.Detail)
 	}
 
 	return &proto.OrderInfoResponse{
