@@ -150,7 +150,7 @@ func AutoReback(ctx context.Context, ext ...*primitive.MessageExt) (consumer.Con
 		var stockSellDetail model.StockSellDetail
 
 		// 查询扣减记录是否存在
-		if result := tx.Where(model.StockSellDetail{
+		if result := tx.Where(&model.StockSellDetail{
 			OrderSN: orderInfo.OrderSN,
 			Status:  1,
 		}).First(&stockSellDetail); result.RowsAffected == 0 {
@@ -159,9 +159,12 @@ func AutoReback(ctx context.Context, ext ...*primitive.MessageExt) (consumer.Con
 
 		// 如果查询到那么逐个归还库存
 		for _, detail := range stockSellDetail.Detail {
-			var inv model.Inventory
-
-			if result := tx.Where(&inv).Update("stocks", gorm.Expr("stocks + ?", detail.Num)); result.RowsAffected == 0 {
+			// fixme: 要指定 表名 model,  update 时一定要指定 where
+			result := tx.Model(&model.Inventory{}).Where(&model.Inventory{Goods: detail.Goods}).Update("stocks", gorm.Expr("stocks + ?", detail.Num))
+			if result.Error != nil {
+				zap.S().Errorf("逐个归还库存， Update 错误: %s", result.Error)
+			}
+			if result.RowsAffected == 0 {
 				tx.Rollback()
 				return consumer.ConsumeRetryLater, nil
 			}
@@ -169,7 +172,11 @@ func AutoReback(ctx context.Context, ext ...*primitive.MessageExt) (consumer.Con
 	}
 
 	// 更新库存销售记录扣减状态
-	if result := tx.Where(model.StockSellDetail{OrderSN: orderInfo.OrderSN}).Update("status", 2); result.RowsAffected == 0 {
+	result := tx.Model(&model.StockSellDetail{}).Where(&model.StockSellDetail{OrderSN: orderInfo.OrderSN}).Update("status", 2)
+	if result.Error != nil {
+		zap.S().Errorf("更新库存销售记录扣减状态错误: %s", result.Error)
+	}
+	if result.RowsAffected == 0 {
 		tx.Rollback()
 		return consumer.ConsumeRetryLater, nil
 	}
