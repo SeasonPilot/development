@@ -8,6 +8,10 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/apache/rocketmq-client-go/v2"
+	"github.com/apache/rocketmq-client-go/v2/consumer"
+	"github.com/apache/rocketmq-client-go/v2/primitive"
+
 	"mxshop-srvs/order_srv/global"
 	"mxshop-srvs/order_srv/handler"
 	"mxshop-srvs/order_srv/initialization"
@@ -73,10 +77,25 @@ func main() {
 		panic(err)
 	}
 
+	c, _ := rocketmq.NewPushConsumer(
+		consumer.WithNameServer(primitive.NamesrvAddr{"172.19.30.30:9876"}),
+		// 通过 GroupName 可以达到负载均衡的效果
+		consumer.WithGroupName("mxshop-order"),
+	)
+
+	if err = c.Subscribe("order_timeout", consumer.MessageSelector{}, handler.OrderTimeout); err != nil {
+		fmt.Println("获得消息失败")
+		return
+	}
+
+	_ = c.Start()
+
 	// 优雅退出; deregister 服务
 	quit := make(chan os.Signal)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
+
+	_ = c.Shutdown()
 
 	err = rc.Deregister(srvID)
 	if err != nil {

@@ -7,6 +7,8 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/apache/rocketmq-client-go/v2/consumer"
+
 	"mxshop-srvs/order_srv/global"
 	"mxshop-srvs/order_srv/model"
 	"mxshop-srvs/order_srv/proto"
@@ -212,6 +214,37 @@ func (o *OrderListener) ExecuteLocalTransaction(msg *primitive.Message) primitiv
 		return primitive.CommitMessageState
 	}
 
+	// 发送延时消息(订单超时)
+	sp, err := rocketmq.NewProducer(producer.WithNameServer(primitive.NamesrvAddr{"172.19.30.30:9876"}))
+	if err != nil {
+		tx.Rollback()
+		o.Code = codes.Internal
+		o.Detail = err.Error()
+		return primitive.CommitMessageState
+	}
+
+	if err = sp.Start(); err != nil {
+		tx.Rollback()
+		o.Code = codes.Internal
+		o.Detail = err.Error()
+		return primitive.CommitMessageState
+	}
+
+	delayMsg := primitive.NewMessage("order_timeout", msg.Body)
+	delayMsg.WithDelayTimeLevel(16)
+	_, err = sp.SendSync(context.Background(), delayMsg)
+	if err != nil {
+		fmt.Printf("SendSync err: %s", err)
+		tx.Rollback()
+		o.Code = codes.Internal
+		o.Detail = err.Error()
+		return primitive.CommitMessageState
+	}
+
+	if err = sp.Shutdown(); err != nil {
+		fmt.Printf("Shutdown err: %s", err)
+	}
+
 	tx.Commit()
 	o.Code = codes.OK
 	return primitive.RollbackMessageState
@@ -371,4 +404,63 @@ func GenOrderSn(id int32) string {
 		now.Year(), now.Month(), now.Day(), now.Hour(), now.Minute(), now.Nanosecond(),
 		id, rand.Intn(90)+10,
 	)
+}
+
+func OrderTimeout(ctx context.Context, msgs ...*primitive.MessageExt) (consumer.ConsumeResult, error) {
+	tx := global.DB
+
+	for _, msg := range msgs {
+		// 反序列化 msg
+		var orderInfo model.OrderInfo
+		_ = json.Unmarshal(msg.Body, &orderInfo)
+
+		fmt.Printf("获取到订单超时消息: %v\n", time.Now())
+
+		// 查询订单的支付状态，如果已支付什么都不做，如果未支付，归还库存
+		result := global.DB.Model(&model.OrderInfo{}).Where(&model.OrderInfo{
+			OrderSn: orderInfo.OrderSn,
+		}).First(&orderInfo)
+		if result.Error != nil {
+			return consumer.ConsumeRetryLater, result.Error
+		}
+		if result.RowsAffected == 0 {
+			return consumer.ConsumeSuccess, nil
+		}
+		if orderInfo.Status != "TRADE_SUCCESS" {
+			// 修改订单的状态为关闭
+			orderInfo.Status = "TRADE_CLOSED"
+			tx.Save(&orderInfo)
+
+			// 取消订单，即 归还库存，模仿order中发送一个消息到 order_reback 中去
+			p, err := rocketmq.NewProducer(producer.WithNameServer(primitive.NamesrvAddr{"172.19.30.30:9876"}))
+			if err != nil {
+				tx.Rollback()
+				zap.S().Errorf("NewProducer err: %s", err.Error())
+				return consumer.ConsumeRetryLater, nil
+			}
+
+			if err = p.Start(); err != nil {
+				tx.Rollback()
+				zap.S().Errorf("Start err: %s", err.Error())
+				return consumer.ConsumeRetryLater, nil
+			}
+
+			_, err = p.SendSync(ctx, &primitive.Message{
+				Topic: "order_reback",
+				Body:  msg.Body,
+			})
+			if err != nil {
+				tx.Rollback()
+				zap.S().Errorf("SendSync err: %s", err.Error())
+				return consumer.ConsumeRetryLater, nil
+			}
+
+			if err = p.Shutdown(); err != nil {
+				fmt.Printf("Shutdown err: %s", err)
+			}
+		}
+	}
+
+	tx.Rollback()
+	return consumer.ConsumeSuccess, nil
 }
