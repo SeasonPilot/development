@@ -217,6 +217,7 @@ func (o *OrderListener) ExecuteLocalTransaction(msg *primitive.Message) primitiv
 	return primitive.RollbackMessageState
 }
 
+// CheckLocalTransaction 回查逻辑
 func (o *OrderListener) CheckLocalTransaction(msg *primitive.MessageExt) primitive.LocalTransactionState {
 	// 反序列化 msg
 	var orderInfo model.OrderInfo

@@ -75,6 +75,7 @@ func main() {
 		panic(err)
 	}
 
+	// 监听库存归还topic
 	c, _ := rocketmq.NewPushConsumer(
 		consumer.WithNameServer(primitive.NamesrvAddr{"172.19.30.30:9876"}),
 		// 通过 GroupName 可以达到负载均衡的效果

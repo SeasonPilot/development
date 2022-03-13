@@ -133,6 +133,7 @@ func (InventoryServer) Reback(ctx context.Context, info *proto.SellInfo) (*empty
 	return &emptypb.Empty{}, nil
 }
 
+// AutoReback 监听到库存归还topic后 归还库存的逻辑
 func AutoReback(ctx context.Context, ext ...*primitive.MessageExt) (consumer.ConsumeResult, error) {
 	type OrderInfo struct {
 		OrderSN string
