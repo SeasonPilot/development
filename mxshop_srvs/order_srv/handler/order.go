@@ -241,9 +241,10 @@ func (o *OrderListener) ExecuteLocalTransaction(msg *primitive.Message) primitiv
 		return primitive.CommitMessageState
 	}
 
-	if err = sp.Shutdown(); err != nil {
-		fmt.Printf("Shutdown err: %s", err)
-	}
+	// 如果要使用多个producer，就不要随便调用shutdown,因为会影响其他的producer
+	//if err = sp.Shutdown(); err != nil {
+	//	fmt.Printf("Shutdown err: %s", err)
+	//}
 
 	tx.Commit()
 	o.Code = codes.OK
@@ -455,9 +456,9 @@ func OrderTimeout(ctx context.Context, msgs ...*primitive.MessageExt) (consumer.
 				return consumer.ConsumeRetryLater, nil
 			}
 
-			if err = p.Shutdown(); err != nil {
-				fmt.Printf("Shutdown err: %s", err)
-			}
+			//if err = p.Shutdown(); err != nil {
+			//	fmt.Printf("Shutdown err: %s", err)
+			//}
 		}
 	}
 

@@ -93,6 +93,8 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
+	_ = c.Shutdown()
+
 	err = rc.Deregister(srvID)
 	if err != nil {
 		return
