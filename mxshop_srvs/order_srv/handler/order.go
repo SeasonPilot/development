@@ -191,6 +191,7 @@ func (o *OrderListener) ExecuteLocalTransaction(msg *primitive.Message) primitiv
 	// 3．库存的扣减—访问库存服务（跨微服务）
 	_, err = global.InventoryClient.Sell(o.Ctx, &proto.SellInfo{
 		GoodsInfo: goodsInfo,
+		OrderSn:   orderInfo.OrderSn,
 	})
 	if err != nil {
 		sts, _ := status.FromError(err)
