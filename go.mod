@@ -15,6 +15,7 @@ require (
 )
 
 require (
+	github.com/HdrHistogram/hdrhistogram-go v1.1.2 // indirect
 	github.com/aliyun/aliyun-oss-go-sdk v2.2.1+incompatible
 	github.com/baiyubin/aliyun-sts-go-sdk v0.0.0-20180326062324-cfa1a18b161f // indirect
 	github.com/go-redis/redis/v8 v8.11.4
@@ -24,8 +25,11 @@ require (
 	github.com/mbobakov/grpc-consul-resolver v1.4.4
 	github.com/nacos-group/nacos-sdk-go v1.1.0
 	github.com/olivere/elastic/v7 v7.0.31
+	github.com/opentracing/opentracing-go v1.2.0
 	github.com/satori/go.uuid v1.2.0 // indirect
 	github.com/smartwalle/alipay/v3 v3.1.7
 	github.com/spf13/viper v1.10.1
+	github.com/uber/jaeger-client-go v2.30.0+incompatible
+	github.com/uber/jaeger-lib v2.4.1+incompatible
 	golang.org/x/sys v0.0.0-20211216021012-1d35b9e2eb4e // indirect
 )
