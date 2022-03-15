@@ -5,7 +5,9 @@ import (
 	"fmt"
 
 	"development/OldPackageTest/grpc_test/proto"
+	"development/OldPackageTest/jaeger_test2/otgrpc"
 
+	"github.com/opentracing/opentracing-go"
 	"github.com/uber/jaeger-client-go"
 	jaegercfg "github.com/uber/jaeger-client-go/config"
 	"google.golang.org/grpc"
@@ -33,8 +35,12 @@ func main() {
 	}
 	defer closer.Close()
 
+	// 设置全局 Tracer
+	opentracing.SetGlobalTracer(tracer)
+
 	// 拨号
-	conn, err := grpc.Dial("localhost:1234", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.Dial("localhost:1234", grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithUnaryInterceptor(otgrpc.OpenTracingClientInterceptor(opentracing.GlobalTracer())))
 	if err != nil {
 		panic(err)
 	}
