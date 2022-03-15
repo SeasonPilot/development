@@ -49,7 +49,7 @@ func RpcErrToHttpErr(c *gin.Context, err error) {
 				})
 			case codes.Unavailable:
 				c.JSON(http.StatusServiceUnavailable, gin.H{
-					"msg": "用户服务不可用",
+					"msg": "商品服务不可用",
 				})
 			default:
 				c.JSON(http.StatusInternalServerError, gin.H{

@@ -51,7 +51,7 @@ func HandleGrpcErrorToHttp(err error, c *gin.Context) {
 				})
 			case codes.Unavailable:
 				c.JSON(http.StatusServiceUnavailable, gin.H{
-					"msg": "用户服务不可用",
+					"msg": "用户操作服务不可用",
 				})
 			default:
 				c.JSON(http.StatusInternalServerError, gin.H{
