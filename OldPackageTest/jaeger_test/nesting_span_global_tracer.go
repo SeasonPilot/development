@@ -29,15 +29,18 @@ func main() {
 	}
 	defer closer.Close()
 
-	parentSpan := tracer.StartSpan("main")
+	// 设置全局 Tracer
+	opentracing.SetGlobalTracer(tracer)
 
-	span := tracer.StartSpan("FunA", opentracing.ChildOf(parentSpan.Context()))
+	parentSpan := opentracing.StartSpan("main")
+
+	span := opentracing.StartSpan("FunA", opentracing.ChildOf(parentSpan.Context()))
 	<-time.After(time.Millisecond * 500)
 	span.Finish()
 
 	<-time.After(time.Millisecond * 100)
 
-	span2 := tracer.StartSpan("FunB", opentracing.ChildOf(span.Context()))
+	span2 := opentracing.StartSpan("FunB", opentracing.ChildOf(span.Context()))
 	<-time.After(time.Second)
 	span2.Finish()
 
