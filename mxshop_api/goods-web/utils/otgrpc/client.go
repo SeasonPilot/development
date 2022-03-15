@@ -5,6 +5,7 @@ import (
 	"runtime"
 	"sync/atomic"
 
+	"github.com/gin-gonic/gin"
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/ext"
 	"github.com/opentracing/opentracing-go/log"
@@ -43,6 +44,19 @@ func OpenTracingClientInterceptor(tracer opentracing.Tracer, optFuncs ...Option)
 		if parent := opentracing.SpanFromContext(ctx); parent != nil {
 			parentCtx = parent.Context()
 		}
+
+		// 使用 gin.Context 中的 tracer、parentSpan 替换原有的 tracer、parentCtx
+		if ginCtx, ok := ctx.(*gin.Context); ok {
+			if iTracer, ok := ginCtx.Get("tracer"); ok {
+				tracer, _ = iTracer.(opentracing.Tracer)
+			}
+			if iSpan, ok := ginCtx.Get("parentSpan"); ok {
+				if span, ok := iSpan.(opentracing.Span); ok {
+					parentCtx = span.Context()
+				}
+			}
+		}
+
 		if otgrpcOpts.inclusionFunc != nil &&
 			!otgrpcOpts.inclusionFunc(parentCtx, method, req, resp) {
 			return invoker(ctx, method, req, resp, cc, opts...)
