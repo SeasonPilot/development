@@ -22,12 +22,12 @@ func InitConfig() {
 	v.SetConfigFile(configFile)
 	err := v.ReadInConfig()
 	if err != nil {
-		return
+		panic(err)
 	}
 
 	err = v.Unmarshal(&global.ServiceConfig)
 	if err != nil {
-		return
+		panic(err)
 	}
 
 	v.WatchConfig()
