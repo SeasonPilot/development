@@ -12,7 +12,7 @@ func Routers() *gin.Engine {
 	Router := gin.Default()
 
 	// 为所有请求添加 Cors 中间件
-	Router.Use(middlewares.Cors())
+	Router.Use(middlewares.Cors()).Use(middlewares.Tracing())
 
 	ApiGroup := Router.Group("/v1")
 	router.InitGoodsRouter(ApiGroup)

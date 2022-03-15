@@ -1,6 +1,7 @@
 package config
 
 type GoodsSrvConfig struct {
+	Name string `mapstructure:"name"`
 	Host string `mapstructure:"host"`
 	Port int    `mapstructure:"port"`
 }
@@ -13,6 +14,12 @@ type ConsulConfig struct {
 	Port int    `mapstructure:"port"`
 }
 
+type JaegerConfig struct {
+	Host string `mapstructuer:"host"`
+	Port int    `mapstructure:"port"`
+	Name string `mapstructure:"name"`
+}
+
 type ServerConfig struct {
 	Name       string         `mapstructure:"name"`
 	Address    string         `mapstructure:"address"`
@@ -21,6 +28,7 @@ type ServerConfig struct {
 	GoodsInfo  GoodsSrvConfig `mapstructure:"goods_info"`
 	JWTInfo    JWTConfig      `mapstructure:"jwt"`
 	ConsulInfo ConsulConfig   `mapstructure:"consul"`
+	JaegerInfo JaegerConfig   `mapstructure:"jaeger"`
 }
 
 type NacosConfig struct {
