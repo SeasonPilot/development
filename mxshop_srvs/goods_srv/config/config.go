@@ -7,6 +7,13 @@ type ServerConfig struct {
 	MysqlInfo  MysqlConfig  `mapstructure:"mysql"`
 	ConsulInfo ConsulConfig `mapstructure:"consul"`
 	EsInfo     EsConfig     `mapstructure:"es"`
+	JaegerInfo JaegerConfig `mapstructure:"jaeger"`
+}
+
+type JaegerConfig struct {
+	Host string `mapstructuer:"host"`
+	Port int    `mapstructure:"port"`
+	Name string `mapstructure:"name"`
 }
 
 type EsConfig struct {

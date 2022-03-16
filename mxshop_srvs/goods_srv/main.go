@@ -26,6 +26,7 @@ func main() {
 	initialization.InitConfig()
 	initialization.InitDB()
 	initialization.InitES()
+	traceInterceptor := initialization.InitTrace()
 
 	//freePort, err := utils.GetFreePort()
 	//if err != nil {
@@ -38,8 +39,8 @@ func main() {
 	flag.Parse()
 	zap.S().Infof("ip: %s, port: %d", *ip, *port)
 
-	// 注册用户服务
-	g := grpc.NewServer()
+	// 注册用户服务; 集成 OpenTracingServerInterceptor
+	g := grpc.NewServer(grpc.UnaryInterceptor(traceInterceptor))
 	proto.RegisterGoodsServer(g, &handler.GoodsServer{})
 
 	listen, err := net.Listen("tcp", fmt.Sprintf("%s:%d", *ip, *port))
