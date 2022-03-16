@@ -33,7 +33,6 @@ func Tracing() gin.HandlerFunc {
 
 		startSpan := tracer.StartSpan(c.Request.URL.Path)
 		defer startSpan.Finish()
-		startSpan.Context()
 
 		c.Set("tracer", tracer)
 		c.Set("parentSpan", startSpan)
