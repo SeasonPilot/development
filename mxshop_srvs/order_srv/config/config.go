@@ -9,6 +9,13 @@ type ServerConfig struct {
 	RedisInfo  RedisConfig    `mapstructure:"redis"`
 	GoodsInfo  GoodsSrvConfig `mapstructure:"goods_info"`
 	InvInfo    InvSrvConfig   `mapstructure:"inv_info"`
+	JaegerInfo JaegerConfig   `mapstructure:"jaeger"`
+}
+
+type JaegerConfig struct {
+	Host string `mapstructuer:"host"`
+	Port int    `mapstructure:"port"`
+	Name string `mapstructure:"name"`
 }
 
 type GoodsSrvConfig struct {

@@ -8,17 +8,20 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/apache/rocketmq-client-go/v2"
-	"github.com/apache/rocketmq-client-go/v2/consumer"
-	"github.com/apache/rocketmq-client-go/v2/primitive"
-
 	"mxshop-srvs/order_srv/global"
 	"mxshop-srvs/order_srv/handler"
 	"mxshop-srvs/order_srv/initialization"
 	"mxshop-srvs/order_srv/proto"
+	"mxshop-srvs/order_srv/utils/otgrpc"
 	"mxshop-srvs/order_srv/utils/registry/consul"
 
+	"github.com/apache/rocketmq-client-go/v2"
+	"github.com/apache/rocketmq-client-go/v2/consumer"
+	"github.com/apache/rocketmq-client-go/v2/primitive"
 	"github.com/google/uuid"
+	"github.com/opentracing/opentracing-go"
+	"github.com/uber/jaeger-client-go"
+	jaegercfg "github.com/uber/jaeger-client-go/config"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
@@ -43,8 +46,32 @@ func main() {
 	flag.Parse()
 	zap.S().Infof("ip: %s, port: %d", *ip, *port)
 
-	// 注册用户服务
-	g := grpc.NewServer()
+	// 集成 tracer
+	cfg := jaegercfg.Configuration{
+		ServiceName: global.ServiceConfig.JaegerInfo.Name,
+		// 采样
+		Sampler: &jaegercfg.SamplerConfig{
+			Type:  jaeger.SamplerTypeConst,
+			Param: 1,
+		},
+		Reporter: &jaegercfg.ReporterConfig{
+			// 发送 span 到服务器时是否打印日志
+			LogSpans:           true,
+			LocalAgentHostPort: fmt.Sprintf("%s:%d", global.ServiceConfig.JaegerInfo.Host, global.ServiceConfig.JaegerInfo.Port),
+		},
+	}
+
+	tracer, _, err := cfg.NewTracer(jaegercfg.Logger(jaeger.StdLogger))
+	if err != nil {
+		panic(err)
+	}
+
+	// 过滤掉健康检查，不生成调用链
+	opt := otgrpc.IncludingSpans(func(parentSpanCtx opentracing.SpanContext, method string, req, resp interface{}) bool {
+		return method != "/grpc.health.v1.Health/Check"
+	})
+	// 注册用户服务; 集成 OpenTracingServerInterceptor
+	g := grpc.NewServer(grpc.UnaryInterceptor(otgrpc.OpenTracingServerInterceptor(tracer, opt)))
 	proto.RegisterOrderServer(g, &handler.OrderServer{})
 
 	listen, err := net.Listen("tcp", fmt.Sprintf("%s:%d", *ip, *port))
