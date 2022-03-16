@@ -65,11 +65,11 @@ func main() {
 		Name:    global.ServiceConfig.Name,
 		Tags:    []string{"primary", "v1"},
 		Port:    *port,
-		Address: "10.94.62.100",
+		Address: global.ServiceConfig.Host,
 		Check: &api.AgentServiceCheck{
 			Interval:                       "5s",
 			Timeout:                        "5s",
-			GRPC:                           fmt.Sprintf("%s:%d", "10.94.62.100", *port),
+			GRPC:                           fmt.Sprintf("%s:%d", global.ServiceConfig.Host, *port),
 			DeregisterCriticalServiceAfter: "15s",
 		},
 	})

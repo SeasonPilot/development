@@ -1,4 +1,5 @@
 name: user_srv
+host: 192.168.31.252
 mysql:
   db: mxshop_user_srv
   host: 172.19.30.30
@@ -6,5 +7,5 @@ mysql:
   user: golang
   password: golang@2020
 consul:
-  host: 10.94.62.100
+  host: 192.168.31.252
   port: 8500

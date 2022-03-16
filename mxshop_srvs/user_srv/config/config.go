@@ -2,6 +2,7 @@ package config
 
 type ServerConfig struct {
 	Name       string       `mapstructure:"name"`
+	Host       string       `mapstructure:"host"`
 	MysqlInfo  MysqlConfig  `mapstructure:"mysql"`
 	ConsulInfo ConsulConfig `mapstructure:"consul"`
 }
