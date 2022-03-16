@@ -2,6 +2,7 @@ package initialization
 
 import (
 	"fmt"
+
 	"mxshop-api/user-web/global"
 	"mxshop-api/user-web/proto"
 
@@ -16,7 +17,7 @@ func InitSrvConn() {
 	cfg := global.SrvConfig.ConsulInfo
 	//grpc lb;  consul 用户服务发现
 	conn, err := grpc.Dial(
-		fmt.Sprintf("consul://%s:%d/%s?wait=14s", cfg.Host, cfg.Port, global.SrvConfig.Name),
+		fmt.Sprintf("consul://%s:%d/%s?wait=14s", cfg.Host, cfg.Port, global.SrvConfig.UserInfo.Name),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithDefaultServiceConfig(`{"loadBalancingPolicy": "round_robin"}`),
 	)

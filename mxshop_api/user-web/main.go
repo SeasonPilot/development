@@ -8,7 +8,6 @@ import (
 
 	"mxshop-api/user-web/global"
 	"mxshop-api/user-web/initialization"
-	"mxshop-api/user-web/utils"
 	"mxshop-api/user-web/utils/registry/consul"
 	myvalidator "mxshop-api/user-web/validator"
 
@@ -26,14 +25,14 @@ func main() {
 	initialization.InitTrans("zh")
 	initialization.InitSrvConn()
 
-	if !initialization.GetEnvInfo("MXSHOP_DEBUG") {
-		port, err := utils.GetFreePort()
-		if err != nil {
-			panic(err)
-			return
-		}
-		global.SrvConfig.Port = port
-	}
+	//if !initialization.GetEnvInfo("MXSHOP_DEBUG") {
+	//	port, err := utils.GetFreePort()
+	//	if err != nil {
+	//		panic(err)
+	//		return
+	//	}
+	//	global.SrvConfig.Port = port
+	//}
 
 	// 注册验证器、翻译器
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {

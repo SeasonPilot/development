@@ -149,6 +149,7 @@ func PassWordLogin(c *gin.Context) {
 		// fixme: user_srv grpc 返回的错误不只一种,可以看下 grpc 层服务返回哪些错误; 所以这里要拿到错误原因进行判断。
 		//  还有连接不上 grpc 服务的错误 Unavailable。
 		RpcStatus, ok := status.FromError(err)
+		zap.S().Errorf("rpcErrMsg: %s", RpcStatus.Message())
 		if ok {
 			switch RpcStatus.Code() {
 			case codes.NotFound:
