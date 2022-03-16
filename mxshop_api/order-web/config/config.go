@@ -21,6 +21,12 @@ type AlipayConfig struct {
 	ReturnURL    string `mapstructure:"return_url"`
 }
 
+type JaegerConfig struct {
+	Host string `mapstructuer:"host"`
+	Port int    `mapstructure:"port"`
+	Name string `mapstructure:"name"`
+}
+
 type ServerConfig struct {
 	Name       string         `mapstructure:"name"`
 	Address    string         `mapstructure:"address"`
@@ -32,6 +38,7 @@ type ServerConfig struct {
 	OrderInfo  GoodsSrvConfig `mapstructure:"order_info"`
 	InvInfo    GoodsSrvConfig `mapstructure:"inv_info"`
 	AlipayInfo AlipayConfig   `mapstructure:"alipay"`
+	JaegerInfo JaegerConfig   `mapstructure:"jaeger"`
 }
 
 type NacosConfig struct {
