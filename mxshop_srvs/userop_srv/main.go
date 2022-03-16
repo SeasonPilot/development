@@ -31,7 +31,7 @@ func main() {
 	//	panic(err)
 	//}
 	ip := flag.String("ip", "0.0.0.0", "ip 地址")
-	port := flag.Int("port", 50051, "端口号")
+	port := flag.Int("port", 50054, "端口号")
 
 	flag.Parse()
 	zap.S().Infof("ip: %s, port: %d", *ip, *port)
