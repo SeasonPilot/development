@@ -66,6 +66,8 @@ func main() {
 		panic(err)
 	}
 
+	opentracing.SetGlobalTracer(tracer)
+
 	// 过滤掉健康检查，不生成调用链
 	opt := otgrpc.IncludingSpans(func(parentSpanCtx opentracing.SpanContext, method string, req, resp interface{}) bool {
 		return method != "/grpc.health.v1.Health/Check"

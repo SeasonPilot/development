@@ -7,15 +7,15 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/apache/rocketmq-client-go/v2/consumer"
-
 	"mxshop-srvs/order_srv/global"
 	"mxshop-srvs/order_srv/model"
 	"mxshop-srvs/order_srv/proto"
 
 	"github.com/apache/rocketmq-client-go/v2"
+	"github.com/apache/rocketmq-client-go/v2/consumer"
 	"github.com/apache/rocketmq-client-go/v2/primitive"
 	"github.com/apache/rocketmq-client-go/v2/producer"
+	"github.com/opentracing/opentracing-go"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -124,6 +124,8 @@ func (o *OrderListener) ExecuteLocalTransaction(msg *primitive.Message) primitiv
 	// map 必现要初始化后才能使用
 	goodsAndNums := make(map[int32]int32)
 
+	parentSpan := opentracing.SpanFromContext(o.Ctx)
+	shopCartSpan := opentracing.GlobalTracer().StartSpan("select_shopcart", opentracing.ChildOf(parentSpan.Context()))
 	if result := global.DB.Where(&model.ShoppingCart{User: orderInfo.User, Checked: true}).Find(&carts); result.RowsAffected == 0 {
 		o.Code = codes.InvalidArgument
 		o.Detail = "没有选中结算的商品"
@@ -134,14 +136,17 @@ func (o *OrderListener) ExecuteLocalTransaction(msg *primitive.Message) primitiv
 		goodsIDs = append(goodsIDs, cart.Goods)
 		goodsAndNums[cart.Goods] = cart.Nums
 	}
+	shopCartSpan.Finish()
 
 	// 2．商品的价格自己查询—访问商品服务（跨微服务）
+	queryGoodsSpan, _ := opentracing.StartSpanFromContext(o.Ctx, "query_goods")
 	goods, err := global.GoodsClient.BatchGetGoods(o.Ctx, &proto.BatchGoodsIdInfo{Id: goodsIDs})
 	if err != nil {
 		o.Code = codes.Internal
 		o.Detail = err.Error()
 		return primitive.RollbackMessageState
 	}
+	queryGoodsSpan.Finish()
 
 	var (
 		totalPrice float32
@@ -170,6 +175,7 @@ func (o *OrderListener) ExecuteLocalTransaction(msg *primitive.Message) primitiv
 	orderInfo.OrderMount = totalPrice
 	o.TotalPrice = totalPrice
 
+	saveOrderSpan, _ := opentracing.StartSpanFromContext(o.Ctx, "save_order")
 	tx := global.DB.Begin()
 	if result := tx.Save(&orderInfo); result.RowsAffected == 0 {
 		tx.Rollback()
@@ -177,6 +183,8 @@ func (o *OrderListener) ExecuteLocalTransaction(msg *primitive.Message) primitiv
 		o.Detail = fmt.Sprintf("保存订单信息失败: %s", result.Error.Error())
 		return primitive.RollbackMessageState
 	}
+	saveOrderSpan.Finish()
+
 	o.OrderID = orderInfo.ID
 
 	for _, good := range orderGoods {
@@ -191,6 +199,7 @@ func (o *OrderListener) ExecuteLocalTransaction(msg *primitive.Message) primitiv
 	}
 
 	// 3．库存的扣减—访问库存服务（跨微服务）
+	queryInvSpan, _ := opentracing.StartSpanFromContext(o.Ctx, "query_inv")
 	_, err = global.InventoryClient.Sell(o.Ctx, &proto.SellInfo{
 		GoodsInfo: goodsInfo,
 		OrderSn:   orderInfo.OrderSn,
@@ -205,14 +214,17 @@ func (o *OrderListener) ExecuteLocalTransaction(msg *primitive.Message) primitiv
 		}
 		zap.S().Errorf("InventoryClient.Sell err : %s", err.Error())
 	}
+	queryInvSpan.Finish()
 
 	// 5．从购物车中删除已购买的记录     可不可以调用微服务自己的方法 DeleteCartItem ？？？
+	deleteShopCartSpan, _ := opentracing.StartSpanFromContext(o.Ctx, "delete_shopcart")
 	if result := tx.Where(&model.ShoppingCart{User: orderInfo.User, Checked: true}).Delete(&model.ShoppingCart{}); result.RowsAffected == 0 {
 		tx.Rollback()
 		o.Code = codes.Internal
 		o.Detail = fmt.Sprintf("创建订单失败: %s", result.Error.Error())
 		return primitive.CommitMessageState
 	}
+	deleteShopCartSpan.Finish()
 
 	// 发送延时消息(订单超时)
 	sp, err := rocketmq.NewProducer(producer.WithNameServer(primitive.NamesrvAddr{"172.19.30.30:9876"}))
