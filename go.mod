@@ -16,6 +16,7 @@ require (
 
 require (
 	github.com/HdrHistogram/hdrhistogram-go v1.1.2 // indirect
+	github.com/alibaba/sentinel-golang v1.0.4
 	github.com/aliyun/aliyun-oss-go-sdk v2.2.1+incompatible
 	github.com/baiyubin/aliyun-sts-go-sdk v0.0.0-20180326062324-cfa1a18b161f // indirect
 	github.com/go-redis/redis/v8 v8.11.4
