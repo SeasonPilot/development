@@ -20,6 +20,7 @@ func main() {
 	initialization.InitConfig()
 	initialization.InitTrans("zh")
 	initialization.InitSrvConn()
+	initialization.InitSentinel()
 
 	//if !initialization.GetEnvInfo("MXSHOP_DEBUG") {
 	//	port, err := utils.GetFreePort()

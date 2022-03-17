@@ -10,6 +10,8 @@ import (
 	"mxshop-api/goods-web/proto"
 	"mxshop-api/goods-web/response"
 
+	sentinel "github.com/alibaba/sentinel-golang/api"
+	"github.com/alibaba/sentinel-golang/core/base"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
@@ -61,12 +63,22 @@ func List(c *gin.Context) {
 	perNumsInt, _ := strconv.Atoi(perNums)
 	req.PagePerNums = int32(perNumsInt)
 
+	// flow control
+	e, b := sentinel.Entry("goods-list", sentinel.WithTrafficType(base.Inbound))
+	if b != nil {
+		c.JSON(http.StatusTooManyRequests, gin.H{
+			"msg": "请求过于频繁，请稍后重试",
+		})
+		return
+	}
+
 	rsp, err := global.GoodsClient.GoodsList(c, &req)
 	if err != nil {
 		zap.S().Errorw("[List] 查询 【商品列表】失败")
 		api.RpcErrToHttpErr(c, err)
 		return
 	}
+	e.Exit()
 
 	c.JSON(http.StatusOK, gin.H{
 		"total": rsp.Total,
