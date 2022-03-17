@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"time"
 
 	sentinel "github.com/alibaba/sentinel-golang/api"
 	"github.com/alibaba/sentinel-golang/core/flow"
@@ -24,6 +25,13 @@ func main() {
 			Threshold:              10,
 			StatIntervalInMs:       1000,
 		},
+		{
+			Resource:               "some-test2",
+			TokenCalculateStrategy: flow.Direct,
+			ControlBehavior:        flow.Throttling, //匀速通过
+			Threshold:              100,
+			StatIntervalInMs:       1000,
+		},
 	})
 	if err != nil {
 		log.Fatalf("加载规则失败: %v", err)
@@ -31,7 +39,7 @@ func main() {
 
 	for i := 0; i < 12; i++ {
 		// 3. Entry 方法用于埋点
-		e, b := sentinel.Entry("some-test")
+		e, b := sentinel.Entry("some-test2")
 		if b != nil {
 			fmt.Printf("限流了 %v\n", b.Error())
 		} else {
@@ -39,5 +47,6 @@ func main() {
 			// 务必保证业务逻辑结束后 Exit
 			e.Exit()
 		}
+		time.Sleep(11 * time.Millisecond)
 	}
 }
