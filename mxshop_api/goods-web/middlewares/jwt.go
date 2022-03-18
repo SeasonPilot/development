@@ -3,7 +3,6 @@ package middlewares
 import (
 	"errors"
 	"net/http"
-	"strings"
 	"time"
 
 	"mxshop-api/goods-web/global"
@@ -27,7 +26,7 @@ func JWTAuth() gin.HandlerFunc {
 		}
 
 		// 过滤掉 x-token 中 Bearer 字段
-		token = strings.Split(token, " ")[1]
+		//token = strings.Split(token, " ")[1]
 
 		j := NewJWT()
 		// parseToken 解析token包含的信息
