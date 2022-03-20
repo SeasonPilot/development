@@ -72,7 +72,7 @@ func main() {
 	opt := otgrpc.IncludingSpans(func(parentSpanCtx opentracing.SpanContext, method string, req, resp interface{}) bool {
 		return method != "/grpc.health.v1.Health/Check"
 	})
-	// 注册用户服务; 集成 OpenTracingServerInterceptor
+	// 注册订单服务; 集成 OpenTracingServerInterceptor
 	g := grpc.NewServer(grpc.UnaryInterceptor(otgrpc.OpenTracingServerInterceptor(tracer, opt)))
 	proto.RegisterOrderServer(g, &handler.OrderServer{})
 

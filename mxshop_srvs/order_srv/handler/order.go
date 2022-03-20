@@ -271,7 +271,7 @@ func (o *OrderListener) CheckLocalTransaction(msg *primitive.MessageExt) primiti
 
 	//怎么检查之前的逻辑是否完成
 	if result := global.DB.Where(&model.OrderInfo{OrderSn: orderInfo.OrderSn}).First(&orderInfo); result.RowsAffected == 0 {
-		return primitive.CommitMessageState // 并不能说明这里就是库存已经扣减了
+		return primitive.CommitMessageState // 并不能说明这里就是库存已经扣减了,库存服务那边归还库存时还要查下 StockSellDetail 表中的记录
 	}
 	return primitive.RollbackMessageState
 }
@@ -474,6 +474,6 @@ func OrderTimeout(ctx context.Context, msgs ...*primitive.MessageExt) (consumer.
 		}
 	}
 
-	tx.Rollback()
+	tx.Commit()
 	return consumer.ConsumeSuccess, nil
 }
