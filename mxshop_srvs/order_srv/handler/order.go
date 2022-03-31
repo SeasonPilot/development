@@ -171,7 +171,7 @@ func (o *OrderListener) ExecuteLocalTransaction(msg *primitive.Message) primitiv
 		})
 	}
 
-	// 4．订单的基本信息表—订单的商品信息表
+	// 4．订单的基本信息表，订单包含的商品信息表
 	orderInfo.OrderMount = totalPrice
 	o.TotalPrice = totalPrice
 
@@ -271,6 +271,7 @@ func (o *OrderListener) CheckLocalTransaction(msg *primitive.MessageExt) primiti
 
 	//怎么检查之前的逻辑是否完成
 	if result := global.DB.Where(&model.OrderInfo{OrderSn: orderInfo.OrderSn}).First(&orderInfo); result.RowsAffected == 0 {
+		// 订单创建失败
 		return primitive.CommitMessageState // 并不能说明这里就是库存已经扣减了,库存服务那边归还库存时还要查下 StockSellDetail 表中的记录
 	}
 	return primitive.RollbackMessageState
