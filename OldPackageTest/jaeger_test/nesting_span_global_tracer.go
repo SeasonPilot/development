@@ -29,10 +29,10 @@ func main() {
 	}
 	defer closer.Close()
 
-	// 设置全局 Tracer
+	// 设置全局 Tracer  核心代码从这开始到最后
 	opentracing.SetGlobalTracer(tracer)
 
-	parentSpan := opentracing.StartSpan("main")
+	parentSpan := opentracing.StartSpan("main") // 直接调用 opentracing 包的 StartSpan，不用 cfg.NewTracer 返回的 tracer 了
 
 	span := opentracing.StartSpan("FunA", opentracing.ChildOf(parentSpan.Context()))
 	<-time.After(time.Millisecond * 500)

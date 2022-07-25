@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"development/OldPackageTest/grpc_test/proto"
 	"development/OldPackageTest/jaeger_test2/otgrpc"
+	"development/OldPackageTest/jaeger_test2/proto"
 
 	"github.com/opentracing/opentracing-go"
 	"github.com/uber/jaeger-client-go"
