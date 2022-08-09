@@ -15,6 +15,7 @@ require (
 )
 
 require (
+	github.com/AlekSi/pointer v1.2.0
 	github.com/HdrHistogram/hdrhistogram-go v1.1.2 // indirect
 	github.com/alibaba/sentinel-golang v1.0.4
 	github.com/aliyun/aliyun-oss-go-sdk v2.2.1+incompatible
